@@ -1,1 +1,1 @@
-# tbot
+# tbot [![Build Status](https://github.com/tennuem/tbot/workflows/build/badge.svg)](https://github.com/tennuem/tbot/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/tennuem/tbot)](https://goreportcard.com/report/github.com/tennuem/tbot) [![Coverage Status](https://coveralls.io/repos/github/tennuem/tbot/badge.svg?branch=master)](https://coveralls.io/github/tennuem/tbot?branch=master)
