@@ -2,11 +2,11 @@ package provider
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 )
 
 func NewYoutubeProvider() Provider {
@@ -20,29 +20,37 @@ func (p *youtubeProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *youtubeProvider) GetURL(title string) (string, error) {
-	purl := "https://music.youtube.com"
+	purl := "https://www.google.ru"
 	u, err := url.Parse(fmt.Sprintf("%s/search", purl))
 	if err != nil {
 		return "", err
 	}
 	q := u.Query()
-	q.Set("q", title)
+	q.Set("q", fmt.Sprintf("%s %s", title, "youtube"))
 	u.RawQuery = q.Encode()
 
-	log.Printf("search link: %v", u.String())
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
 
-	resp, err := http.Get(u.String())
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	n, err := html.Parse(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	link := findLinkByClass(n, "ytp-title-link")
+	link, ok := doc.Find(".srg .g a").First().Attr("href")
+	if !ok {
+		return "", ErrURLNotFound
+	}
 
-	return link, nil
+	return strings.Replace(link, "www.", "music.", -1), nil
 }

@@ -31,8 +31,8 @@ func TestYoutubeProviderGetURL(t *testing.T) {
 		out string
 	}{
 		{
-			"Death by Dishonor — Ghostemane, Pouya, Shakewell, Erick the Architect",
-			"https://www.youtube.com/watch?list=RDAMVMotl8yjZcg2Y&v=otl8yjZcg2Y",
+			"Babushka Boi - A$AP Rocky",
+			"https://music.youtube.com/watch?v=KViOTZ62zBg",
 		},
 	}
 	p := NewYoutubeProvider()
