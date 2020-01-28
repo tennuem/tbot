@@ -30,3 +30,21 @@ func TestAppleProviderGetTitle(t *testing.T) {
 		assert.Equal(t, c.out, res)
 	}
 }
+
+func TestAppleProviderGetURL(t *testing.T) {
+	testData := []struct {
+		in  string
+		out string
+	}{
+		{
+			"DLBM - Miyagi & Эндшпиль & N.E.R.A.K.",
+			"https://music.apple.com/ie/album/dlbm-single/1267895125",
+		},
+	}
+	p := NewAppleProvider()
+	for _, c := range testData {
+		res, err := p.GetURL(c.in)
+		require.NoError(t, err)
+		assert.Equal(t, c.out, res)
+	}
+}

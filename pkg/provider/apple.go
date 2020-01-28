@@ -2,10 +2,13 @@ package provider
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 )
 
 func NewAppleProvider() Provider {
@@ -21,22 +24,58 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	n, err := html.Parse(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
 	// ‎Песня «DLBM» (Miyagi &amp; Эндшпиль &amp; N.E.R.A.K.) в Apple Music
 	// Песня «Babushka Boi» (A$AP Rocky) в Apple Music
 	r := regexp.MustCompile(`^.+«(.+)» \((.+)\)`)
 
-	title := pageTitle(n)
+	title := getTitle(resp.Body)
 	// fmt.Printf("find: %#v\n", r.FindStringSubmatch(title))
 	ss := r.FindStringSubmatch(title)
 
 	return fmt.Sprintf("%s - %s", ss[1], ss[2]), nil
 }
 
+func getTitle(r io.Reader) string {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		panic(err)
+	}
+	return doc.Find("title").Text()
+}
+
 func (p *appleProvider) GetURL(title string) (string, error) {
-	return "", ErrURLNotFound
+	purl := "https://google.ru"
+	u, err := url.Parse(fmt.Sprintf("%s/search", purl))
+	if err != nil {
+		return "", err
+	}
+	q := u.Query()
+	q.Set("q", fmt.Sprintf("%s apple music", title))
+	u.RawQuery = q.Encode()
+
+	log.Printf("search link: %v", u.String())
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
+
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	link, ok := doc.Find(".srg .g a").First().Attr("href")
+	if !ok {
+		return "", ErrURLNotFound
+	}
+	return link, nil
 }
