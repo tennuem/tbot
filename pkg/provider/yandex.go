@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,7 +17,7 @@ func NewYandexProvider() Provider {
 type yandexProvider struct{}
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {
-	// TODO: запрос для получения html можно вынести в отдельный метож
+	// TODO: запрос для получения html можно вынести в отдельный метод
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -41,6 +42,8 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 	q := u.Query()
 	q.Set("text", title)
 	u.RawQuery = q.Encode()
+
+	log.Printf("search link: %v", u.String())
 
 	resp, err := http.Get(u.String())
 	if err != nil {

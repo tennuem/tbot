@@ -52,10 +52,12 @@ func getLinks(rawURL string) ([]string, error) {
 		}
 		u, err := p.GetURL(title)
 		if err != nil {
-			log.Printf("failed to get url by title %v", err)
+			log.Printf("failed to get url from: %v, by title %v", k, err.Error())
 			continue
 		}
-		res = append(res, u)
+		if u != "" {
+			res = append(res, u)
+		}
 	}
 	return res, nil
 }

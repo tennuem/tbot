@@ -1,13 +1,19 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 func main() {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
+	token := os.Getenv("TELEGRAM_TOKEN")
+	if token == "" {
+		panic(errors.New("TELEGRAM_TOKEN is required"))
+	}
+
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		panic(err)
 	}

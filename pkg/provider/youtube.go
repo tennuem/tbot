@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -27,6 +28,8 @@ func (p *youtubeProvider) GetURL(title string) (string, error) {
 	q := u.Query()
 	q.Set("q", title)
 	u.RawQuery = q.Encode()
+
+	log.Printf("search link: %v", u.String())
 
 	resp, err := http.Get(u.String())
 	if err != nil {
