@@ -15,8 +15,35 @@ func NewYoutubeProvider() Provider {
 
 type youtubeProvider struct{}
 
-func (p *youtubeProvider) GetTitle(url string) (string, error) {
-	return "", ErrTitleNotFound
+func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
+	req, err := http.NewRequest("GET", rawUrl, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Googlebot/2.1 (+http://www.googlebot.com/bot.html)")
+
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	//og:video:tag
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var res string
+	doc.Find("meta[property=\"og:video:tag\"]").Each(func(i int, s *goquery.Selection) {
+		c, ok := s.Attr("content")
+		if ok {
+			res += fmt.Sprintf("%s ", c)
+		}
+	})
+	if res == "" {
+		return "", ErrTitleNotFound
+	}
+	return res[0 : len(res)-1], nil
 }
 
 func (p *youtubeProvider) GetURL(title string) (string, error) {

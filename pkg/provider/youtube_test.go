@@ -13,8 +13,12 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 		out string
 	}{
 		{
+			"https://music.youtube.com/watch?v=IA1H1--5GFM&feature=share",
+			"A$AP Rocky Babushka Boi",
+		},
+		{
 			"https://music.youtube.com/watch?v=otl8yjZcg2Y&feature=share",
-			"Death by Dishonor — Ghostemane, Pouya, Shakewell, Erick the Architect",
+			"Ghostemane Shakewell Pouya Erick the Architect Death by Dishonor",
 		},
 	}
 	p := NewYoutubeProvider()
