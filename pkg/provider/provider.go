@@ -20,7 +20,7 @@ type Provider interface {
 }
 
 // getLinks возвращает список ссылок по которым удалось найти трек.
-func getLinks(rawURL string) ([]string, error) {
+func GetLinks(rawURL string) ([]string, error) {
 	if rawURL == "" {
 		return nil, ErrEmptyURL
 	}

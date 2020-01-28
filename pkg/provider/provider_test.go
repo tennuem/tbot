@@ -13,20 +13,16 @@ func TestGetLinks(t *testing.T) {
 		out []string
 	}{
 		{
-			"https://music.yandex.com/album/4141435/track/33829704",
+			"https://music.yandex.com/album/8508157/track/57016085",
 			[]string{
-				"https://music.yandex.com/album/4141435/track/33829704",
-			},
-		},
-		{
-			"https://music.youtube.com/watch?v=otl8yjZcg2Y&feature=share",
-			[]string{
-				"https://music.youtube.com/watch?v=otl8yjZcg2Y&feature=share",
+				"https://music.yandex.com/album/8508157/track/57016085",
+				"https://music.youtube.com/watch?v=KViOTZ62zBg",
+				"https://music.apple.com/us/album/babushka-boi-single/1477644647",
 			},
 		},
 	}
 	for _, c := range testData {
-		res, err := getLinks(c.in)
+		res, err := GetLinks(c.in)
 		require.NoError(t, err)
 		assert.Equal(t, c.out, res)
 	}
