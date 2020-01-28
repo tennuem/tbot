@@ -13,8 +13,8 @@ func TestYandexProviderGetTitle(t *testing.T) {
 		out string
 	}{
 		{
-			"https://music.yandex.com/album/4141435/track/33829704",
-			"Death by Dishonor — Ghostemane, Pouya, Shakewell, Erick the Architect",
+			"https://music.yandex.com/album/8508157/track/57016085",
+			"Babushka Boi — A$AP Rocky",
 		},
 	}
 	p := NewYandexProvider()
@@ -31,8 +31,8 @@ func TestYandexProviderGetURL(t *testing.T) {
 		out string
 	}{
 		{
-			"Death by Dishonor — Ghostemane, Pouya, Shakewell, Erick the Architect",
-			"https://music.yandex.com/album/4141435/track/33829704",
+			"Babushka Boi — A$AP Rocky",
+			"https://music.yandex.com/album/8508157/track/57016085",
 		},
 	}
 	p := NewYandexProvider()

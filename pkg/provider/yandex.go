@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 )
 
 func NewYandexProvider() Provider {
@@ -24,12 +24,13 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	n, err := html.Parse(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	ss := strings.Split(pageTitle(n), ". ")
+	title := doc.Find("title").First().Text()
+	ss := strings.Split(title, ". ")
 	return ss[0], nil
 }
 
@@ -51,56 +52,15 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	n, err := html.Parse(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	link := findLinkByClass(n, "d-track__title deco-link deco-link_stronger")
+	link, ok := doc.Find("a.d-track__title").First().Attr("href")
+	if !ok {
+		return "", ErrURLNotFound
+	}
 
 	return fmt.Sprintf("%s%s", purl, link), nil
-}
-
-func pageTitle(n *html.Node) string {
-	var title string
-	if n.Type == html.ElementNode && n.Data == "title" {
-		return n.FirstChild.Data
-	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		title = pageTitle(c)
-		if title != "" {
-			break
-		}
-	}
-	return title
-}
-
-// d-track__title deco-link deco-link_stronger
-func findLinkByClass(n *html.Node, class string) string {
-	var link string
-	if n.Type == html.ElementNode && n.Data == "a" {
-		for _, v := range n.Attr {
-			if v.Key == "class" && v.Val == class {
-				fmt.Println(n)
-				return getHref(n)
-			}
-		}
-
-	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		link = findLinkByClass(c, class)
-		if link != "" {
-			break
-		}
-	}
-	return link
-}
-
-func getHref(n *html.Node) string {
-	for _, v := range n.Attr {
-		if v.Key == "href" {
-			return v.Val
-		}
-	}
-	return ""
 }
