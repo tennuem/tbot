@@ -2,7 +2,6 @@ package provider
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -28,19 +27,15 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 	// Песня «Babushka Boi» (A$AP Rocky) в Apple Music
 	r := regexp.MustCompile(`^.+«(.+)» \((.+)\)`)
 
-	title := getTitle(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	title := doc.Find("title").Text()
 	// fmt.Printf("find: %#v\n", r.FindStringSubmatch(title))
 	ss := r.FindStringSubmatch(title)
 
 	return fmt.Sprintf("%s - %s", ss[1], ss[2]), nil
-}
-
-func getTitle(r io.Reader) string {
-	doc, err := goquery.NewDocumentFromReader(r)
-	if err != nil {
-		panic(err)
-	}
-	return doc.Find("title").Text()
 }
 
 func (p *appleProvider) GetURL(title string) (string, error) {
