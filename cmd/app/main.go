@@ -2,9 +2,12 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/tennuem/tbot/pkg/provider"
 )
 
 func main() {
@@ -42,5 +45,11 @@ func main() {
 			}
 			bot.Send(msg)
 		}
+		res, err := provider.GetLinks(update.Message.Text)
+		if err != nil {
+			fmt.Println("get links: ", err)
+			continue
+		}
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(res, "\n")))
 	}
 }
