@@ -11,6 +11,7 @@ COPY . ${PATH_ROJECT}
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o ${BIN} ${APP}
 
-FROM scratch
+FROM alpine:3.10
+RUN apk --no-cache add ca-certificates
 COPY --from=build /go/bin/tbot /bin/tbot
 ENTRYPOINT ["/bin/tbot"]
