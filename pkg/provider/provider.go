@@ -45,7 +45,6 @@ func GetLinks(rawURL string) ([]string, error) {
 	}
 
 	var res []string
-	res = append(res, rawURL)
 	for k, p := range providers {
 		if k == u.Hostname() {
 			continue
