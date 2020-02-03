@@ -50,6 +50,6 @@ func main() {
 			fmt.Println("get links: ", err)
 			continue
 		}
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(res, "\n")))
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(res, "\n\n")))
 	}
 }
