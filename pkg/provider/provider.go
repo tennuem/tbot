@@ -3,6 +3,7 @@ package provider
 import (
 	"log"
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -28,6 +29,9 @@ func GetLinks(rawURL string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse url")
 	}
+	if strings.HasSuffix(u.Host, ".ru") {
+		u.Host = strings.Replace(u.Host, ".ru", ".com", -1)
+	}
 
 	providers := map[string]Provider{
 		"music.yandex.com":  NewYandexProvider(),
@@ -35,7 +39,7 @@ func GetLinks(rawURL string) ([]string, error) {
 		"music.apple.com":   NewAppleProvider(),
 	}
 
-	mainProvider, ok := providers[u.Hostname()]
+	mainProvider, ok := providers[u.Host]
 	if !ok {
 		return nil, ErrProviderNotFound
 	}
@@ -46,7 +50,7 @@ func GetLinks(rawURL string) ([]string, error) {
 
 	var res []string
 	for k, p := range providers {
-		if k == u.Hostname() {
+		if k == u.Host {
 			continue
 		}
 		u, err := p.GetURL(title)

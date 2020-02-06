@@ -47,7 +47,7 @@ func main() {
 		}
 		res, err := provider.GetLinks(update.Message.Text)
 		if err != nil {
-			fmt.Println("get links: ", err)
+			fmt.Printf("get links from message %s: %v", update.Message.Text, err)
 			continue
 		}
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(res, "\n\n")))
