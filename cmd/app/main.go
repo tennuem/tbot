@@ -16,6 +16,12 @@ func main() {
 		panic(errors.New("TELEGRAM_TOKEN is required"))
 	}
 
+	svc := provider.NewService(map[string]provider.Provider{
+		"music.yandex.com":  provider.NewYandexProvider(),
+		"music.youtube.com": provider.NewYoutubeProvider(),
+		"music.apple.com":   provider.NewAppleProvider(),
+	})
+
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		panic(err)
@@ -45,7 +51,7 @@ func main() {
 			}
 			bot.Send(msg)
 		}
-		res, err := provider.GetLinks(update.Message.Text)
+		res, err := svc.GetLinks(update.Message.Text)
 		if err != nil {
 			fmt.Printf("get links from message %s: %v", update.Message.Text, err)
 			continue
