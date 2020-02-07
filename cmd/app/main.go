@@ -1,46 +1,56 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/tennuem/tbot/pkg/provider"
 )
 
 func main() {
+	var logger log.Logger
+	logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
+	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+
 	token := os.Getenv("TELEGRAM_TOKEN")
 	if token == "" {
-		panic(errors.New("TELEGRAM_TOKEN is required"))
+		level.Error(logger).Log("err", "TELEGRAM_TOKEN is required")
+		os.Exit(1)
 	}
 
 	svc := provider.NewService(map[string]provider.Provider{
-		"music.yandex.com":  provider.NewYandexProvider(),
-		"music.youtube.com": provider.NewYoutubeProvider(),
-		"music.apple.com":   provider.NewAppleProvider(),
-	})
+		"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
+		"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
+		"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
+	}, log.With(logger, "component", "service"))
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		panic(err)
+		level.Error(logger).Log("err", err)
+		os.Exit(1)
 	}
-	bot.Debug = true
+	bot.Debug = false
 
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates, err := bot.GetUpdatesChan(u)
+	updates, err := bot.GetUpdatesChan(tgbotapi.UpdateConfig{
+		Offset:  0,
+		Timeout: 60,
+	})
 	if err != nil {
-		panic(err)
+		level.Error(logger).Log("err", err)
+		os.Exit(1)
 	}
+	level.Info(logger).Log("msg", "start service")
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		if update.Message.IsCommand() {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 			switch update.Message.Command() {
 			case "help":
 				msg.Text = "type /ping."
@@ -49,13 +59,14 @@ func main() {
 			default:
 				msg.Text = "I don't know that command"
 			}
-			bot.Send(msg)
 		}
 		res, err := svc.GetLinks(update.Message.Text)
 		if err != nil {
-			fmt.Printf("get links from message %s: %v", update.Message.Text, err)
+			level.Error(logger).Log("err", fmt.Sprintf("get links from message %s: %v", update.Message.Text, err))
 			continue
 		}
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, strings.Join(res, "\n\n")))
+		msg.Text = strings.Join(res, "\n\n")
+		bot.Send(msg)
 	}
+	level.Info(logger).Log("msg", "stop service")
 }

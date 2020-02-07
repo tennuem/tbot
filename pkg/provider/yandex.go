@@ -2,22 +2,24 @@ package provider
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 )
 
-func NewYandexProvider() Provider {
-	return &yandexProvider{}
+func NewYandexProvider(logger log.Logger) Provider {
+	return &yandexProvider{logger}
 }
 
-type yandexProvider struct{}
+type yandexProvider struct {
+	logger log.Logger
+}
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {
-	// TODO: запрос для получения html можно вынести в отдельный метод
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -29,9 +31,10 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 
-	title := doc.Find("title").First().Text()
-	ss := strings.Split(title, ". ")
-	return ss[0], nil
+	ss := strings.Split(doc.Find("title").First().Text(), ". ")
+	title := ss[0]
+	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
+	return title, nil
 }
 
 func (p *yandexProvider) GetURL(title string) (string, error) {
@@ -44,8 +47,6 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 	q.Set("text", title)
 	u.RawQuery = q.Encode()
 
-	log.Printf("search link: %v", u.String())
-
 	resp, err := http.Get(u.String())
 	if err != nil {
 		return "", err
@@ -57,10 +58,11 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 		return "", err
 	}
 
-	link, ok := doc.Find("a.d-track__title").First().Attr("href")
+	href, ok := doc.Find("a.d-track__title").First().Attr("href")
 	if !ok {
 		return "", ErrURLNotFound
 	}
-
-	return fmt.Sprintf("%s%s", purl, link), nil
+	link := fmt.Sprintf("%s%s", purl, href)
+	level.Info(p.logger).Log("method", "GetURL", "msg", link)
+	return link, nil
 }

@@ -7,13 +7,17 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 )
 
-func NewYoutubeProvider() Provider {
-	return &youtubeProvider{}
+func NewYoutubeProvider(logger log.Logger) Provider {
+	return &youtubeProvider{logger}
 }
 
-type youtubeProvider struct{}
+type youtubeProvider struct {
+	logger log.Logger
+}
 
 func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
 	req, err := http.NewRequest("GET", rawUrl, nil)
@@ -43,7 +47,10 @@ func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
 	if res == "" {
 		return "", ErrTitleNotFound
 	}
-	return res[0 : len(res)-1], nil
+
+	title := res[0 : len(res)-1]
+	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
+	return title, nil
 }
 
 func (p *youtubeProvider) GetURL(title string) (string, error) {
@@ -74,10 +81,11 @@ func (p *youtubeProvider) GetURL(title string) (string, error) {
 		return "", err
 	}
 
-	link, ok := doc.Find(".srg .g a").First().Attr("href")
+	href, ok := doc.Find(".srg .g a").First().Attr("href")
 	if !ok {
 		return "", ErrURLNotFound
 	}
-
-	return strings.Replace(link, "www.", "music.", -1), nil
+	link := strings.Replace(href, "www.", "music.", -1)
+	level.Info(p.logger).Log("method", "GetURL", "msg", link)
+	return link, nil
 }

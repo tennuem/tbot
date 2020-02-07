@@ -2,19 +2,22 @@ package provider
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 )
 
-func NewAppleProvider() Provider {
-	return &appleProvider{}
+func NewAppleProvider(logger log.Logger) Provider {
+	return &appleProvider{logger}
 }
 
-type appleProvider struct{}
+type appleProvider struct {
+	logger log.Logger
+}
 
 func (p *appleProvider) GetTitle(url string) (string, error) {
 	resp, err := http.Get(url)
@@ -31,11 +34,10 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	title := doc.Find("title").Text()
-	// fmt.Printf("find: %#v\n", r.FindStringSubmatch(title))
-	ss := r.FindStringSubmatch(title)
-
-	return fmt.Sprintf("%s - %s", ss[1], ss[2]), nil
+	ss := r.FindStringSubmatch(doc.Find("title").Text())
+	title := fmt.Sprintf("%s - %s", ss[1], ss[2])
+	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
+	return title, nil
 }
 
 func (p *appleProvider) GetURL(title string) (string, error) {
@@ -47,8 +49,6 @@ func (p *appleProvider) GetURL(title string) (string, error) {
 	q := u.Query()
 	q.Set("q", fmt.Sprintf("%s apple music", title))
 	u.RawQuery = q.Encode()
-
-	log.Printf("search link: %v", u.String())
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
@@ -72,5 +72,6 @@ func (p *appleProvider) GetURL(title string) (string, error) {
 	if !ok {
 		return "", ErrURLNotFound
 	}
+	level.Info(p.logger).Log("method", "GetURL", "msg", link)
 	return link, nil
 }

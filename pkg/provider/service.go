@@ -1,10 +1,12 @@
 package provider
 
 import (
-	"log"
+	"fmt"
 	"net/url"
 	"strings"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 )
 
@@ -24,12 +26,13 @@ type Service interface {
 	GetLinks(msg string) ([]string, error)
 }
 
-func NewService(p map[string]Provider) Service {
-	return &service{p}
+func NewService(p map[string]Provider, logger log.Logger) Service {
+	return &service{p, logger}
 }
 
 type service struct {
 	providers map[string]Provider
+	logger    log.Logger
 }
 
 func (s *service) GetLinks(msg string) ([]string, error) {
@@ -57,7 +60,7 @@ func (s *service) GetLinks(msg string) ([]string, error) {
 		}
 		u, err := p.GetURL(title)
 		if err != nil {
-			log.Printf("failed to get url from: %v, by title %v", k, err.Error())
+			level.Error(s.logger).Log(fmt.Sprintf("failed to get url from: %v, by title %v", k, err.Error()))
 			continue
 		}
 		if u != "" {

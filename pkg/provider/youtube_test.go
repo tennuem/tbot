@@ -3,6 +3,7 @@ package provider
 import (
 	"testing"
 
+	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +22,7 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 			"Ghostemane Shakewell Pouya Erick the Architect Death by Dishonor",
 		},
 	}
-	p := NewYoutubeProvider()
+	p := NewYoutubeProvider(log.NewNopLogger())
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
 		require.NoError(t, err)
@@ -39,7 +40,7 @@ func TestYoutubeProviderGetURL(t *testing.T) {
 			"https://music.youtube.com/watch?v=KViOTZ62zBg",
 		},
 	}
-	p := NewYoutubeProvider()
+	p := NewYoutubeProvider(log.NewNopLogger())
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
 		require.NoError(t, err)
