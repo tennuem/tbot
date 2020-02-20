@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,17 +10,25 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/oklog/run"
 	"github.com/pkg/errors"
+	"github.com/tennuem/tbot/configs"
 	"github.com/tennuem/tbot/pkg/bot"
 	"github.com/tennuem/tbot/pkg/provider"
+	"github.com/tennuem/tbot/tools/logger"
 )
 
 func NewServer() *Server {
-	var logger log.Logger
-	logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-	token := os.Getenv("TELEGRAM_TOKEN")
-	if token == "" {
-		level.Error(logger).Log("err", "TELEGRAM_TOKEN is required")
+	cfg := configs.NewConfig()
+	if err := cfg.Read(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to init config: %s", err)
+		os.Exit(1)
+	}
+	if err := cfg.Print(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to print config: %s", err)
+		os.Exit(1)
+	}
+	logger, err := logger.NewLogger(cfg.Logger.Level)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to init config: %s", err)
 		os.Exit(1)
 	}
 	svc := provider.NewService(map[string]provider.Provider{
@@ -31,7 +40,7 @@ func NewServer() *Server {
 		svc:    svc,
 		logger: log.With(logger, "component", "server"),
 	}
-	svr.runBot(token)
+	svr.runBot(cfg.Telegram.Token)
 	svr.runSignalHandler()
 	return &svr
 }
