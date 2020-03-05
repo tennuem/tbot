@@ -1,4 +1,4 @@
-package provider
+package service
 
 import (
 	"fmt"
@@ -8,30 +8,24 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/tennuem/tbot/pkg/provider"
 )
 
 var (
 	ErrEmptyMessage     = errors.New("Message is empty")
 	ErrProviderNotFound = errors.New("provider not found")
-	ErrTitleNotFound    = errors.New("title not found")
-	ErrURLNotFound      = errors.New("URL not found")
 )
-
-type Provider interface {
-	GetTitle(url string) (string, error)
-	GetURL(title string) (string, error)
-}
 
 type Service interface {
 	GetLinks(msg string) ([]string, error)
 }
 
-func NewService(p map[string]Provider, logger log.Logger) Service {
+func NewService(p map[string]provider.Provider, logger log.Logger) Service {
 	return &service{p, logger}
 }
 
 type service struct {
-	providers map[string]Provider
+	providers map[string]provider.Provider
 	logger    log.Logger
 }
 
@@ -43,7 +37,6 @@ func (s *service) GetLinks(msg string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse msg")
 	}
-
 	p := s.getProvider(u.Host)
 	if p == nil {
 		return nil, ErrProviderNotFound
@@ -52,7 +45,6 @@ func (s *service) GetLinks(msg string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get title")
 	}
-
 	var res []string
 	for k, p := range s.providers {
 		if k == u.Host {
@@ -70,7 +62,7 @@ func (s *service) GetLinks(msg string) ([]string, error) {
 	return res, nil
 }
 
-func (s *service) getProvider(host string) Provider {
+func (s *service) getProvider(host string) provider.Provider {
 	v, ok := s.providers[host]
 	if !ok {
 		return nil

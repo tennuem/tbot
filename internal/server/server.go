@@ -13,6 +13,7 @@ import (
 	"github.com/tennuem/tbot/configs"
 	"github.com/tennuem/tbot/pkg/bot"
 	"github.com/tennuem/tbot/pkg/provider"
+	"github.com/tennuem/tbot/pkg/service"
 	"github.com/tennuem/tbot/tools/logger"
 )
 
@@ -31,7 +32,7 @@ func NewServer() *Server {
 		fmt.Fprintf(os.Stderr, "failed to init config: %s", err)
 		os.Exit(1)
 	}
-	svc := provider.NewService(map[string]provider.Provider{
+	svc := service.NewService(map[string]provider.Provider{
 		"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
 		"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
 		"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
@@ -46,7 +47,7 @@ func NewServer() *Server {
 }
 
 type Server struct {
-	svc    provider.Service
+	svc    service.Service
 	logger log.Logger
 	group  run.Group
 }

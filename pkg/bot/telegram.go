@@ -7,15 +7,20 @@ import (
 	"github.com/go-kit/kit/log/level"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
-	"github.com/tennuem/tbot/pkg/provider"
+	"github.com/tennuem/tbot/pkg/service"
 )
 
+var ErrTokenNotFound = errors.New("token not found")
+
 type Bot interface {
-	Listen(provider.Service) error
+	Listen(service.Service) error
 	Close()
 }
 
 func NewTelegramBot(token string, logger log.Logger) (Bot, error) {
+	if len(token) == 0 {
+		return nil, ErrTokenNotFound
+	}
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
@@ -38,7 +43,7 @@ type tbot struct {
 	stop   chan struct{}
 }
 
-func (b *tbot) Listen(svc provider.Service) error {
+func (b *tbot) Listen(svc service.Service) error {
 	for {
 		select {
 		case <-b.stop:
