@@ -11,6 +11,7 @@ import (
 	"github.com/oklog/run"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/configs"
+	"github.com/tennuem/tbot/internal/store"
 	"github.com/tennuem/tbot/pkg/bot"
 	"github.com/tennuem/tbot/pkg/provider"
 	"github.com/tennuem/tbot/pkg/service"
@@ -32,11 +33,20 @@ func NewServer() *Server {
 		fmt.Fprintf(os.Stderr, "failed to init config: %s", err)
 		os.Exit(1)
 	}
-	svc := service.NewService(map[string]provider.Provider{
-		"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
-		"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
-		"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
-	}, log.With(logger, "component", "service"))
+	ms, err := store.NewMongoStore(cfg.MongoDB.Addr)
+	if err != nil {
+		level.Error(logger).Log("err", errors.Wrap(err, "failed to init mongo client"))
+		os.Exit(1)
+	}
+	svc := service.NewService(
+		ms,
+		map[string]provider.Provider{
+			"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
+			"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
+			"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
+		},
+		log.With(logger, "component", "service"),
+	)
 	svr := Server{
 		svc:    svc,
 		logger: log.With(logger, "component", "server"),

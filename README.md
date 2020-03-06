@@ -5,11 +5,12 @@
 | Command line   | Environment         | Default | Description     |
 | -------------- | :------------------ | :------ | :-------------- |
 | telegram.token | TBOT_TELEGRAM_TOKEN | string  | telegram token  |
+| mongodb.addr   | TBOT_MONGODB_ADDR   | string  | MongoDB URI     |
 | logger.level   | TBOT_LOGGER_LEVEL   | info    | level of logger |
 
 ## Usage
 
 ```bash
-$ docker build --no-cache -t tbot .
-$ docker run tbot
+$ docker-compose build
+$ docker-compose up -d
 ```

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -17,19 +18,33 @@ var (
 )
 
 type Service interface {
-	GetLinks(msg string) ([]string, error)
+	GetLinks(ctx context.Context, msg string) ([]string, error)
 }
 
-func NewService(p map[string]provider.Provider, logger log.Logger) Service {
-	return &service{p, logger}
+type Model struct {
+	Msg   string   `bson:"msg"`
+	Title string   `bson:"title"`
+	URL   []string `bson:"url,omitempty"`
+}
+
+type Store interface {
+	// Save saves all urls for a message.
+	Save(ctx context.Context, m *Model) error
+	// FindByMsg find urls by message.
+	FindByMsg(ctx context.Context, msg string) *Model
+}
+
+func NewService(s Store, p map[string]provider.Provider, logger log.Logger) Service {
+	return &service{s, p, logger}
 }
 
 type service struct {
+	store     Store
 	providers map[string]provider.Provider
 	logger    log.Logger
 }
 
-func (s *service) GetLinks(msg string) ([]string, error) {
+func (s *service) GetLinks(ctx context.Context, msg string) ([]string, error) {
 	if msg == "" {
 		return nil, ErrEmptyMessage
 	}
@@ -40,6 +55,9 @@ func (s *service) GetLinks(msg string) ([]string, error) {
 	p := s.getProvider(u.Host)
 	if p == nil {
 		return nil, ErrProviderNotFound
+	}
+	if res := s.store.FindByMsg(ctx, msg); res != nil {
+		return res.URL, nil
 	}
 	title, err := p.GetTitle(msg)
 	if err != nil {
@@ -58,6 +76,9 @@ func (s *service) GetLinks(msg string) ([]string, error) {
 		if u != "" {
 			res = append(res, u)
 		}
+	}
+	if err := s.store.Save(ctx, &Model{msg, title, res}); err != nil {
+		level.Error(s.logger).Log("err", errors.Wrap(err, "failed to save model"))
 	}
 	return res, nil
 }

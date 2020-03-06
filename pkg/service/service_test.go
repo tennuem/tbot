@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -23,13 +24,17 @@ func TestGetLinks(t *testing.T) {
 			},
 		},
 	}
-	svc := NewService(map[string]provider.Provider{
-		"music.yandex.com":  provider.NewYandexProvider(log.NewNopLogger()),
-		"music.youtube.com": provider.NewYoutubeProvider(log.NewNopLogger()),
-		"music.apple.com":   provider.NewAppleProvider(log.NewNopLogger()),
-	}, log.NewNopLogger())
+	svc := NewService(
+		NewStoreMock(),
+		map[string]provider.Provider{
+			"music.yandex.com":  provider.NewYandexProvider(log.NewNopLogger()),
+			"music.youtube.com": provider.NewYoutubeProvider(log.NewNopLogger()),
+			"music.apple.com":   provider.NewAppleProvider(log.NewNopLogger()),
+		},
+		log.NewNopLogger(),
+	)
 	for k, c := range testData {
-		res, err := svc.GetLinks(c.in)
+		res, err := svc.GetLinks(context.Background(), c.in)
 		require.NoError(t, err)
 		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
 	}

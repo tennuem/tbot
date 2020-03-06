@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"strings"
 
 	"github.com/go-kit/kit/log"
@@ -74,7 +75,7 @@ func (b *tbot) Listen(svc service.Service) error {
 				b.api.Send(msg)
 				continue
 			}
-			resp, err := svc.GetLinks(update.Message.Text)
+			resp, err := svc.GetLinks(context.TODO(), update.Message.Text)
 			if err != nil {
 				level.Error(b.logger).Log("err", errors.Errorf("get links from message %s: %v", update.Message.Text, err))
 				continue

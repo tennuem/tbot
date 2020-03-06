@@ -15,12 +15,16 @@ var ServiceName = "tbot"
 
 var options = []option{
 	{"telegram.token", "string", "", "telegram token"},
+	{"mongodb.addr", "string", "", "mongo addr"},
 	{"logger.level", "string", "info", "logger level"},
 }
 
 type Config struct {
 	Telegram struct {
 		Token string
+	}
+	MongoDB struct {
+		Addr string
 	}
 	Logger struct {
 		Level string

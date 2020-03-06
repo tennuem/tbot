@@ -1,0 +1,13 @@
+version: "3.5"
+services:
+  app:
+    build: .
+    environment:
+      TBOT_TELEGRAM_TOKEN: "token"
+      TBOT_MONGODB_ADDR: "addr"
+      TBOT_LOGGER_LEVEL: "debug"
+  mongodb:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
