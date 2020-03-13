@@ -32,7 +32,7 @@ func NewTelegramBot(token string, logger log.Logger) (Bot, error) {
 			Timeout: 60,
 		},
 		api,
-		log.With(logger, "component", "tbot"),
+		logger,
 		make(chan struct{}),
 	}, nil
 }

@@ -30,7 +30,7 @@ func NewServer() *Server {
 	}
 	logger, err := logger.NewLogger(cfg.Logger.Level)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to init config: %s", err)
+		fmt.Fprintf(os.Stderr, "failed to init logger: %s", err)
 		os.Exit(1)
 	}
 	ms, err := store.NewMongoStore(cfg.MongoDB.Addr)
@@ -67,7 +67,7 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) runBot(token string) {
-	b, err := bot.NewTelegramBot(token, s.logger)
+	b, err := bot.NewTelegramBot(token, log.With(s.logger, "component", "tbot"))
 	if err != nil {
 		level.Error(s.logger).Log("err", errors.Wrap(err, "failed to init telegram bot"))
 		os.Exit(1)
