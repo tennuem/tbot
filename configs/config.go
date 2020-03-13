@@ -14,8 +14,8 @@ import (
 var ServiceName = "tbot"
 
 var options = []option{
-	{"telegram.token", "string", "", "telegram token"},
-	{"mongodb.addr", "string", "", "mongo addr"},
+	{"telegram.token", "string", "token", "telegram token"},
+	{"mongodb.addr", "string", "mongodb://root:root@localhost:27017/?ssl=false", "mongo addr"},
 	{"logger.level", "string", "info", "logger level"},
 }
 

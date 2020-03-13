@@ -1,13 +1,24 @@
 version: "3.5"
 services:
-  app:
-    build: .
-    environment:
-      TBOT_TELEGRAM_TOKEN: "token"
-      TBOT_MONGODB_ADDR: "addr"
-      TBOT_LOGGER_LEVEL: "debug"
+
   mongodb:
     image: mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - data-volume:/data/db
+    ports:
+      - 27017:27017
+
+  app:
+    build: .
+    environment:
+      TBOT_TELEGRAM_TOKEN: token
+      TBOT_MONGODB_ADDR: mongodb://root:root@mongodb:27017/?ssl=false
+      TBOT_LOGGER_LEVEL: "debug"
+    depends_on:
+      - mongodb
+      
+volumes:
+  data-volume:
