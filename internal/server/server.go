@@ -11,8 +11,8 @@ import (
 	"github.com/oklog/run"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/configs"
+	"github.com/tennuem/tbot/internal/bot"
 	"github.com/tennuem/tbot/internal/store"
-	"github.com/tennuem/tbot/pkg/bot"
 	"github.com/tennuem/tbot/pkg/provider"
 	"github.com/tennuem/tbot/pkg/service"
 	"github.com/tennuem/tbot/tools/logger"
@@ -47,9 +47,10 @@ func NewServer() *Server {
 		},
 		log.With(logger, "component", "service"),
 	)
+	svc = service.NewLoggingService(log.With(logger, "component", "service"), svc)
 	svr := Server{
-		svc:    svc,
-		logger: log.With(logger, "component", "server"),
+		handler: service.MakeBotHandler(svc, logger),
+		logger:  log.With(logger, "component", "server"),
 	}
 	svr.runBot(cfg.Telegram.Token)
 	svr.runSignalHandler()
@@ -57,9 +58,9 @@ func NewServer() *Server {
 }
 
 type Server struct {
-	svc    service.Service
-	logger log.Logger
-	group  run.Group
+	handler bot.Handler
+	logger  log.Logger
+	group   run.Group
 }
 
 func (s *Server) Run() error {
@@ -67,16 +68,16 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) runBot(token string) {
-	b, err := bot.NewTelegramBot(token, log.With(s.logger, "component", "tbot"))
+	listener, err := bot.Listen(token)
 	if err != nil {
 		level.Error(s.logger).Log("err", errors.Wrap(err, "failed to init telegram bot"))
 		os.Exit(1)
 	}
 	s.group.Add(func() error {
 		level.Info(s.logger).Log("msg", "start telegram bot")
-		return b.Listen(s.svc)
+		return listener.Listen(s.handler)
 	}, func(error) {
-		b.Close()
+		listener.Close()
 	})
 }
 

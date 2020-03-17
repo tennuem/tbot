@@ -26,7 +26,7 @@ type mongoStore struct {
 	client *mongo.Client
 }
 
-func (s *mongoStore) Save(ctx context.Context, m *service.Model) error {
+func (s *mongoStore) Save(ctx context.Context, m *service.Message) error {
 	collection := s.client.Database("tbot").Collection("links")
 	if _, err := collection.InsertOne(ctx, m); err != nil {
 		return err
@@ -34,11 +34,27 @@ func (s *mongoStore) Save(ctx context.Context, m *service.Model) error {
 	return nil
 }
 
-func (s *mongoStore) FindByMsg(ctx context.Context, msg string) *service.Model {
-	var m service.Model
+func (s *mongoStore) FindByURL(ctx context.Context, url string) (*service.Message, error) {
+	var m service.Message
 	collection := s.client.Database("tbot").Collection("links")
-	if err := collection.FindOne(ctx, bson.D{{"msg", msg}}).Decode(&m); err != nil {
-		return nil
+	if err := collection.FindOne(ctx, bson.D{{"url", url}}).Decode(&m); err != nil {
+		return nil, err
 	}
-	return &m
+	return &m, nil
+}
+
+func (s *mongoStore) FindByUsername(ctx context.Context, username string) ([]service.Message, error) {
+	var m []service.Message
+	opts := options.Find()
+	opts.SetLimit(10)
+	collection := s.client.Database("tbot").Collection("links")
+	cur, err := collection.Find(ctx, bson.D{{"username", username}}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err := cur.All(ctx, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }

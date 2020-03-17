@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -13,25 +14,25 @@ import (
 )
 
 var (
-	ErrEmptyMessage     = errors.New("Message is empty")
 	ErrProviderNotFound = errors.New("provider not found")
 )
 
 type Service interface {
-	GetLinks(ctx context.Context, msg string) ([]string, error)
+	FindLinks(ctx context.Context, m *Message) (*Message, error)
+	GetList(ctx context.Context, username string) (string, error)
 }
 
-type Model struct {
-	Msg   string   `bson:"msg"`
-	Title string   `bson:"title"`
-	URL   []string `bson:"url,omitempty"`
+type Message struct {
+	URL      string   `bson:"url"`
+	Title    string   `bson:"title"`
+	Links    []string `bson:"links,omitempty"`
+	Username string   `bson:"username"`
 }
 
 type Store interface {
-	// Save saves all urls for a message.
-	Save(ctx context.Context, m *Model) error
-	// FindByMsg find urls by message.
-	FindByMsg(ctx context.Context, msg string) *Model
+	Save(ctx context.Context, m *Message) error
+	FindByURL(ctx context.Context, url string) (*Message, error)
+	FindByUsername(ctx context.Context, username string) ([]Message, error)
 }
 
 func NewService(s Store, p map[string]provider.Provider, logger log.Logger) Service {
@@ -44,31 +45,29 @@ type service struct {
 	logger    log.Logger
 }
 
-func (s *service) GetLinks(ctx context.Context, msg string) ([]string, error) {
-	if msg == "" {
-		return nil, ErrEmptyMessage
-	}
-	u, err := parseMsg(msg)
+func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
+	p, err := s.findProvider(m.URL)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse msg")
+		return nil, err
 	}
-	p := s.getProvider(u.Host)
-	if p == nil {
-		return nil, ErrProviderNotFound
+	msg, err := s.store.FindByURL(ctx, m.URL)
+	if err != nil {
+		level.Error(s.logger).Log("err", err)
 	}
-	if res := s.store.FindByMsg(ctx, msg); res != nil {
-		return res.URL, nil
+	if msg != nil {
+		return nil, errors.Errorf("@%s has already share it", msg.Username)
 	}
-	title, err := p.GetTitle(msg)
+	title, err := p.GetTitle(m.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get title")
 	}
+	m.Title = title
 	var res []string
-	for k, p := range s.providers {
-		if k == u.Host {
+	for k, v := range s.providers {
+		if v == p {
 			continue
 		}
-		u, err := p.GetURL(title)
+		u, err := v.GetURL(title)
 		if err != nil {
 			level.Error(s.logger).Log(fmt.Sprintf("failed to get url from: %v, by title %v", k, err.Error()))
 			continue
@@ -77,22 +76,42 @@ func (s *service) GetLinks(ctx context.Context, msg string) ([]string, error) {
 			res = append(res, u)
 		}
 	}
-	if err := s.store.Save(ctx, &Model{msg, title, res}); err != nil {
-		level.Error(s.logger).Log("err", errors.Wrap(err, "failed to save model"))
+	m.Links = res
+	if err := s.store.Save(ctx, m); err != nil {
+		level.Error(s.logger).Log("err", err)
 	}
-	return res, nil
+	return m, nil
 }
 
-func (s *service) getProvider(host string) provider.Provider {
-	v, ok := s.providers[host]
+func (s *service) GetList(ctx context.Context, username string) (string, error) {
+	m, err := s.store.FindByUsername(ctx, username)
+	if err != nil {
+		return "", err
+	}
+	var b bytes.Buffer
+	for _, v := range m {
+		b.WriteString(v.Title)
+		b.WriteRune('\n')
+		b.WriteString(v.URL)
+		b.WriteRune('\n')
+	}
+	return b.String(), nil
+}
+
+func (s *service) findProvider(url string) (provider.Provider, error) {
+	u, err := parseURL(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse url")
+	}
+	v, ok := s.providers[u.Host]
 	if !ok {
-		return nil
+		return nil, ErrProviderNotFound
 	}
-	return v
+	return v, nil
 }
 
-func parseMsg(msg string) (*url.URL, error) {
-	u, err := url.Parse(msg)
+func parseURL(s string) (*url.URL, error) {
+	u, err := url.Parse(s)
 	if err != nil {
 		return nil, err
 	}
