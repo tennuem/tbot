@@ -25,7 +25,6 @@ func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
 		return "", err
 	}
 	req.Header.Set("User-Agent", "Googlebot/2.1 (+http://www.googlebot.com/bot.html)")
-
 	client := new(http.Client)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -47,7 +46,6 @@ func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
 	if res == "" {
 		return "", ErrTitleNotFound
 	}
-
 	title := res[0 : len(res)-1]
 	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
 	return title, nil
@@ -62,26 +60,22 @@ func (p *youtubeProvider) GetURL(title string) (string, error) {
 	q := u.Query()
 	q.Set("q", fmt.Sprintf("%s %s", title, "youtube"))
 	u.RawQuery = q.Encode()
-
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
-
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
-
-	href, ok := doc.Find(".srg .g a").First().Attr("href")
+	href, ok := doc.Find("#search .g a").First().Attr("href")
 	if !ok {
 		return "", ErrURLNotFound
 	}

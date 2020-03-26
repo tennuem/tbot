@@ -118,19 +118,19 @@ func NewServeMux() *ServerMux {
 
 func (mux *ServerMux) Handle(command string, handler Handler) {
 	mux.mu.Lock()
-	mux.mu.Unlock()
+	defer mux.mu.Unlock()
 	mux.m[command] = handler
 }
 
 func (mux *ServerMux) HandleFunc(command string, handler func(ResponseWriter, *Request)) {
 	mux.mu.Lock()
-	mux.mu.Unlock()
+	defer mux.mu.Unlock()
 	mux.m[command] = HandlerFunc(handler)
 }
 
 func (mux *ServerMux) Handler(r *Request) Handler {
 	mux.mu.Lock()
-	mux.mu.Unlock()
+	defer mux.mu.Unlock()
 	v, ok := mux.m[r.Message.Text]
 	if !ok {
 		v, ok := mux.m["*"]
