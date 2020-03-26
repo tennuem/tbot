@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrProviderNotFound = errors.New("provider not found")
+	ErrLinksNotFound    = errors.New("links not found")
 )
 
 type Service interface {
@@ -86,7 +87,10 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 func (s *service) GetList(ctx context.Context, username string) (string, error) {
 	m, err := s.store.FindByUsername(ctx, username)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "find by username in store")
+	}
+	if m == nil {
+		return "", ErrLinksNotFound
 	}
 	var b bytes.Buffer
 	for _, v := range m {
