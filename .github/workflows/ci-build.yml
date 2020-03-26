@@ -1,17 +1,21 @@
 name: build
-
 on:
   push:
     branches:
     tags:
   pull_request:
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v1
-
       - name: build docker image
-        run: docker build .
+        run: docker build -t tbot .
+      - name: publish docker image to registry
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | \
+          docker login docker.pkg.github.com \
+          --username ${{ secrets.DOCKER_USERNAME }} \
+          --password-stdin
+          docker tag tbot docker.pkg.github.com/tennuem/tbot/tbot:latest
+          docker push docker.pkg.github.com/tennuem/tbot/tbot:latest
