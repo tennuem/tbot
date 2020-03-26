@@ -17,26 +17,23 @@ func TestFindLinks(t *testing.T) {
 		out *Message
 	}{
 		{
-			&Message{URL: "https://music.yandex.com/album/8508157/track/57016085"},
+			&Message{URL: "http://p1"},
 			&Message{
-				Links: []string{
-					"https://music.youtube.com/watch?v=KViOTZ62zBg",
-					"https://music.apple.com/us/album/babushka-boi-single/1477644647",
-				}},
+				URL:   "http://p1",
+				Title: "test_title",
+			},
 		},
 	}
 	svc := NewService(
 		NewStoreMock(),
 		map[string]provider.Provider{
-			"music.yandex.com":  provider.NewYandexProvider(log.NewNopLogger()),
-			"music.youtube.com": provider.NewYoutubeProvider(log.NewNopLogger()),
-			"music.apple.com":   provider.NewAppleProvider(log.NewNopLogger()),
+			"p1": provider.NewMockProvider(),
 		},
 		log.NewNopLogger(),
 	)
 	for k, c := range testData {
 		res, err := svc.FindLinks(context.Background(), c.in)
 		require.NoError(t, err)
-		assert.Equal(t, c.out.Links, res.Links, fmt.Sprintf("case-%d", k))
+		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
 	}
 }
