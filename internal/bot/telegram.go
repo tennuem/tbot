@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/go-kit/kit/endpoint"
@@ -131,7 +132,11 @@ func (mux *ServerMux) HandleFunc(command string, handler func(ResponseWriter, *R
 func (mux *ServerMux) Handler(r *Request) Handler {
 	mux.mu.Lock()
 	defer mux.mu.Unlock()
-	v, ok := mux.m[r.Message.Text]
+	command := r.Message.Text
+	if r.Message.IsCommand() {
+		command = fmt.Sprintf("/%s", r.Message.Command())
+	}
+	v, ok := mux.m[command]
 	if !ok {
 		v, ok := mux.m["*"]
 		if !ok {
