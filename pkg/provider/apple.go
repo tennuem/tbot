@@ -29,7 +29,6 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 	// ‎Песня «DLBM» (Miyagi &amp; Эндшпиль &amp; N.E.R.A.K.) в Apple Music
 	// Песня «Babushka Boi» (A$AP Rocky) в Apple Music
 	r := regexp.MustCompile(`^.+«(.+)» \((.+)\)`)
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
@@ -49,26 +48,22 @@ func (p *appleProvider) GetURL(title string) (string, error) {
 	q := u.Query()
 	q.Set("q", fmt.Sprintf("%s apple music", title))
 	u.RawQuery = q.Encode()
-
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
-
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
 	client := new(http.Client)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
-
-	link, ok := doc.Find(".srg .g a").First().Attr("href")
+	link, ok := doc.Find("#search .g a").First().Attr("href")
 	if !ok {
 		return "", ErrURLNotFound
 	}
