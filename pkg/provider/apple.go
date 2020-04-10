@@ -34,6 +34,9 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 	ss := r.FindStringSubmatch(doc.Find("title").Text())
+	if ss == nil {
+		return "", ErrTitleNotFound
+	}
 	title := fmt.Sprintf("%s - %s", ss[1], ss[2])
 	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
 	return title, nil
