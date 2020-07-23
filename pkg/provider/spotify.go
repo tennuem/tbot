@@ -31,6 +31,9 @@ func (p *spotifyProvider) GetTitle(url string) (string, error) {
 	substr := "track/"
 	id := url[strings.Index(url, substr)+len(substr):]
 	token, err := p.cfg.Token(context.Background())
+	if err != nil {
+		return "", errors.Wrap(err, "get token")
+	}
 	api := spotifyAPI.Authenticator{}.NewClient(token)
 	track, err := api.GetTrack(spotifyAPI.ID(id))
 	if err != nil {
@@ -47,6 +50,9 @@ func (p *spotifyProvider) GetTitle(url string) (string, error) {
 
 func (p *spotifyProvider) GetURL(title string) (string, error) {
 	token, err := p.cfg.Token(context.Background())
+	if err != nil {
+		return "", errors.Wrap(err, "get token")
+	}
 	api := spotifyAPI.Authenticator{}.NewClient(token)
 	results, err := api.Search(title, spotifyAPI.SearchTypeTrack)
 	if err != nil {
