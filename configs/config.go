@@ -26,8 +26,8 @@ type Config struct {
 		Token string
 	}
 	Spotify struct {
-		ClientID     string
-		ClientSecret string
+		ClientID     string `mapstructure:"client_id"`
+		ClientSecret string `mapstructure:"client_secret"`
 	}
 	MongoDB struct {
 		Addr string
