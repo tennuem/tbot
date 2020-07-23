@@ -15,6 +15,8 @@ var ServiceName = "tbot"
 
 var options = []option{
 	{"telegram.token", "string", "token", "telegram token"},
+	{"spotify.client_id", "string", "cid", "spotify client id"},
+	{"spotify.client_secret", "string", "csecret", "spotify secret"},
 	{"mongodb.addr", "string", "mongodb://root:root@localhost:27017/?ssl=false", "mongo addr"},
 	{"logger.level", "string", "info", "logger level"},
 }
@@ -22,6 +24,10 @@ var options = []option{
 type Config struct {
 	Telegram struct {
 		Token string
+	}
+	Spotify struct {
+		ClientID     string
+		ClientSecret string
 	}
 	MongoDB struct {
 		Addr string

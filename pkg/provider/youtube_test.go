@@ -19,7 +19,7 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 		},
 		{
 			"https://music.youtube.com/watch?v=otl8yjZcg2Y&feature=share",
-			"Ghostemane Shakewell Pouya Erick the Architect Death by Dishonor",
+			"Ghostemane Shakewell Pouya & Erick the Architect Death by Dishonor",
 		},
 	}
 	p := NewYoutubeProvider(log.NewNopLogger())

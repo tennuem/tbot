@@ -13,6 +13,8 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.4.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
+	github.com/zmb3/spotify v0.0.0-20200525010707-bc712583571e
 	go.mongodb.org/mongo-driver v1.3.1
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 )

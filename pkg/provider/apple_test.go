@@ -39,7 +39,7 @@ func TestAppleProviderGetURL(t *testing.T) {
 	}{
 		{
 			"DLBM - Miyagi & Эндшпиль & N.E.R.A.K.",
-			"https://music.apple.com/ie/album/dlbm-single/1267895125",
+			"https://music.apple.com/ca/album/dlbm-single/1267895125",
 		},
 	}
 	p := NewAppleProvider(log.NewNopLogger())
