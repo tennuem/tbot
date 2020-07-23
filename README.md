@@ -2,11 +2,13 @@
 
 ## Configuration
 
-| Command line   | Environment         | Default | Description     |
-| -------------- | :------------------ | :------ | :-------------- |
-| telegram.token | TBOT_TELEGRAM_TOKEN | string  | telegram token  |
-| mongodb.addr   | TBOT_MONGODB_ADDR   | string  | MongoDB URI     |
-| logger.level   | TBOT_LOGGER_LEVEL   | info    | level of logger |
+| Command line          | Environment                | Default | Description     |
+| --------------------- | :------------------------- | :------ | :-------------- |
+| telegram.token        | TBOT_TELEGRAM_TOKEN        | string  | telegram token  |
+| spotify.client_id     | TBOT_SPOTIFY_CLIENT_ID     | string  | telegram token  |
+| spotify.client_secret | TBOT_SPOTIFY_CLIENT_SECRET | string  | telegram token  |
+| mongodb.addr          | TBOT_MONGODB_ADDR          | string  | MongoDB URI     |
+| logger.level          | TBOT_LOGGER_LEVEL          | info    | level of logger |
 
 ## Usage
 

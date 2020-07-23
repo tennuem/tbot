@@ -44,6 +44,10 @@ func NewServer() *Server {
 			"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
 			"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
 			"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
+			"open.spotify.com": provider.NewSpotifyProvider(
+				log.With(logger, "component", "spotify"),
+				cfg.Spotify.ClientID,
+				cfg.Spotify.ClientSecret),
 		},
 		log.With(logger, "component", "service"),
 	)
