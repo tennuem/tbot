@@ -58,7 +58,7 @@ func (p *spotifyProvider) GetURL(title string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "search track")
 	}
-	if results.Tracks == nil && len(results.Tracks.Tracks) == 0 {
+	if results.Tracks == nil || len(results.Tracks.Tracks) == 0 {
 		return "", ErrURLNotFound
 	}
 	v, ok := results.Tracks.Tracks[0].ExternalURLs["spotify"]
