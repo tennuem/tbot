@@ -114,6 +114,9 @@ func (s *service) findProvider(url string) (provider.Provider, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parse url")
 	}
+	if u.Host == "link.spotify.com" {
+		u.Host = strings.Replace(u.Host, "link", "open", -1)
+	}
 	v, ok := s.providers[u.Host]
 	if !ok {
 		return nil, ErrProviderNotFound
