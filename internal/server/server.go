@@ -81,10 +81,7 @@ func (s *server) signal() {
 	c := make(chan os.Signal, 1)
 	s.group.Add(func() error {
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		select {
-		case sig := <-c:
-			return errors.Errorf("received signal %s", sig)
-		}
+		return errors.Errorf("received signal %s", <-c)
 	}, func(error) {
 		close(c)
 	})
