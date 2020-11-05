@@ -38,6 +38,24 @@ func TestFindLinks(t *testing.T) {
 	}
 }
 
+func TestFindProvider(t *testing.T) {
+	testCases := []struct {
+		in  string
+		out provider.Provider
+	}{
+		{"https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7", provider.NewMockProvider()},
+		{"https://link.spotify.com/track/643PW82aBMUa1FiWi5VQY7", provider.NewMockProvider()},
+	}
+	svc := &service{providers: map[string]provider.Provider{
+		"open.spotify.com": provider.NewMockProvider(),
+	}}
+	for k, c := range testCases {
+		res, err := svc.findProvider(c.in)
+		require.NoError(t, err)
+		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
+	}
+}
+
 func TestExtractLink(t *testing.T) {
 	testCases := []struct {
 		in  string
