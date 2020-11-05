@@ -1,10 +1,10 @@
 package provider
 
 import (
+	"context"
 	"os"
 	"testing"
 
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ func TestSpotifyProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := NewSpotifyProvider(
-		log.NewNopLogger(),
+		context.Background(),
 		os.Getenv("TBOT_SPOTIFY_CLIENT_ID"),
 		os.Getenv("TBOT_SPOTIFY_CLIENT_SECRET"),
 	)
@@ -42,7 +42,7 @@ func TestSpotifyProviderGetURL(t *testing.T) {
 		},
 	}
 	p := NewSpotifyProvider(
-		log.NewNopLogger(),
+		context.Background(),
 		os.Getenv("TBOT_SPOTIFY_CLIENT_ID"),
 		os.Getenv("TBOT_SPOTIFY_CLIENT_SECRET"),
 	)

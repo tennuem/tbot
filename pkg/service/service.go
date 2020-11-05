@@ -24,6 +24,7 @@ var (
 type Service interface {
 	FindLinks(ctx context.Context, m *Message) (*Message, error)
 	GetList(ctx context.Context, username string) (string, error)
+	AddProvider(p provider.Provider)
 }
 
 type Message struct {
@@ -39,10 +40,10 @@ type Store interface {
 	FindByUsername(ctx context.Context, username string) ([]Message, error)
 }
 
-func NewService(ctx context.Context, s Store, p map[string]provider.Provider) Service {
+func NewService(ctx context.Context, s Store) Service {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "service")
-	return &service{s, p, logger}
+	return &service{store: s, logger: logger}
 }
 
 type service struct {
@@ -53,14 +54,22 @@ type service struct {
 
 func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 	link, err := extractLink(m.URL)
-	if err != nil && len(link) == 0 {
+	if err != nil || len(link) == 0 {
 		level.Error(s.logger).Log("err", errors.Wrap(err, "extract link"))
 		return nil, ErrLinkNotFound
 	}
-	p, err := s.findProvider(link)
+	u, err := parseURL(link)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse url")
+	}
+	if u.Host == "link.spotify.com" {
+		u.Host = strings.Replace(u.Host, "link", "open", -1)
+	}
+	p, err := s.findProvider(u.Host)
 	if err != nil {
 		return nil, err
 	}
+	link = u.String()
 	msg, err := s.store.FindByURL(ctx, link)
 	if err != nil {
 		level.Error(s.logger).Log("err", err)
@@ -113,15 +122,15 @@ func (s *service) GetList(ctx context.Context, username string) (string, error) 
 	return b.String(), nil
 }
 
-func (s *service) findProvider(url string) (provider.Provider, error) {
-	u, err := parseURL(url)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse url")
+func (s *service) AddProvider(p provider.Provider) {
+	if s.providers == nil {
+		s.providers = make(map[string]provider.Provider)
 	}
-	if u.Host == "link.spotify.com" {
-		u.Host = strings.Replace(u.Host, "link", "open", -1)
-	}
-	v, ok := s.providers[u.Host]
+	s.providers[p.Host()] = p
+}
+
+func (s *service) findProvider(host string) (provider.Provider, error) {
+	v, ok := s.providers[host]
 	if !ok {
 		return nil, ErrProviderNotFound
 	}

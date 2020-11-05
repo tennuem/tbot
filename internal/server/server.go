@@ -48,19 +48,11 @@ func (s *server) Run(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to init mongo store")
 	}
-	svc := service.NewService(
-		ctx,
-		ms,
-		map[string]provider.Provider{
-			"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
-			"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
-			"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
-			"open.spotify.com": provider.NewSpotifyProvider(
-				log.With(logger, "component", "spotify"),
-				cfg.Spotify.ClientID,
-				cfg.Spotify.ClientSecret),
-		},
-	)
+	svc := service.NewService(ctx, ms)
+	svc.AddProvider(provider.NewYandexProvider(ctx))
+	svc.AddProvider(provider.NewYoutubeProvider(ctx))
+	svc.AddProvider(provider.NewAppleProvider(ctx))
+	svc.AddProvider(provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret))
 	svc = service.NewLoggingService(ctx, svc)
 	if err := s.bot(ctx, cfg.Telegram.Token, service.MakeBotHandler(svc, logger)); err != nil {
 		return errors.Wrap(err, "failed to init telegram bot")

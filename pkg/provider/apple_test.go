@@ -1,9 +1,9 @@
 package provider
 
 import (
+	"context"
 	"testing"
 
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ func TestAppleProviderGetTitle(t *testing.T) {
 			"Babushka Boi - A$AP Rocky",
 		},
 	}
-	p := NewAppleProvider(log.NewNopLogger())
+	p := NewAppleProvider(context.Background())
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
 		require.NoError(t, err)
@@ -42,7 +42,7 @@ func TestAppleProviderGetURL(t *testing.T) {
 			"https://music.apple.com/ca/album/dlbm-single/1267895125",
 		},
 	}
-	p := NewAppleProvider(log.NewNopLogger())
+	p := NewAppleProvider(context.Background())
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
 		require.NoError(t, err)

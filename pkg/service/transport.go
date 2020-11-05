@@ -80,6 +80,8 @@ func encodeError(_ context.Context, err error, w bot.ResponseWriter) {
 	switch errors.Cause(err) {
 	case ErrProviderNotFound:
 		return
+	case ErrLinkNotFound:
+		return
 	default:
 		w.Write([]byte(err.Error()))
 	}

@@ -1,9 +1,9 @@
 package provider
 
 import (
+	"context"
 	"testing"
 
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ func TestYandexProviderGetTitle(t *testing.T) {
 			"Babushka Boi — A$AP Rocky",
 		},
 	}
-	p := NewYandexProvider(log.NewNopLogger())
+	p := NewYandexProvider(context.Background())
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
 		require.NoError(t, err)
@@ -36,7 +36,7 @@ func TestYandexProviderGetURL(t *testing.T) {
 			"https://music.yandex.com/album/8508157/track/57016085",
 		},
 	}
-	p := NewYandexProvider(log.NewNopLogger())
+	p := NewYandexProvider(context.Background())
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
 		require.NoError(t, err)
