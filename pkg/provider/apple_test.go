@@ -17,7 +17,7 @@ func TestAppleProviderGetTitle(t *testing.T) {
 	}{
 		{
 			"https://music.apple.com/ru/album/dlbm/1267895125?i=1267895588",
-			"DLBM - Miyagi & Эндшпиль & N.E.R.A.K.",
+			"DLBM - Miyagi & Эндшпиль & NERAK",
 		},
 		{
 			"https://music.apple.com/ru/album/babushka-boi/1477644647?i=1477644655",

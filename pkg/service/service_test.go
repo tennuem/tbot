@@ -17,9 +17,9 @@ func TestFindLinks(t *testing.T) {
 		out *Message
 	}{
 		{
-			&Message{URL: "http://p1"},
+			&Message{URL: "https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7"},
 			&Message{
-				URL:   "http://p1",
+				URL:   "https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7",
 				Title: "test_title",
 			},
 		},
@@ -27,12 +27,28 @@ func TestFindLinks(t *testing.T) {
 	svc := NewService(
 		NewStoreMock(),
 		map[string]provider.Provider{
-			"p1": provider.NewMockProvider(),
+			"open.spotify.com": provider.NewMockProvider(),
 		},
 		log.NewNopLogger(),
 	)
 	for k, c := range testData {
 		res, err := svc.FindLinks(context.Background(), c.in)
+		require.NoError(t, err)
+		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
+	}
+}
+
+func TestExtractLink(t *testing.T) {
+	testCases := []struct {
+		in  string
+		out string
+	}{
+		{"foo", ""},
+		{"foo https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7", "https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7"},
+		{"foo\nhttps://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7", "https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7"},
+	}
+	for k, c := range testCases {
+		res, err := extractLink(c.in)
 		require.NoError(t, err)
 		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
 	}

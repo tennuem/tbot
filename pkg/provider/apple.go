@@ -25,15 +25,15 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-
-	// ‎Песня «DLBM» (Miyagi &amp; Эндшпиль &amp; N.E.R.A.K.) в Apple Music
-	// Песня «Babushka Boi» (A$AP Rocky) в Apple Music
-	r := regexp.MustCompile(`^.+«(.+)» \((.+)\)`)
+	reg, err := regexp.Compile(`^.+«(.+)» \((.+)\)`)
+	if err != nil {
+		return "", err
+	}
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
-	ss := r.FindStringSubmatch(doc.Find("title").Text())
+	ss := reg.FindStringSubmatch(doc.Find("title").Text())
 	if ss == nil {
 		return "", ErrTitleNotFound
 	}
