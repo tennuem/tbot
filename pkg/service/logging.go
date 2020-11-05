@@ -6,10 +6,13 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
 // NewLoggingService returns a new instance of a logging Service.
-func NewLoggingService(logger log.Logger, s Service) Service {
+func NewLoggingService(ctx context.Context, s Service) Service {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "service")
 	return &loggingService{logger, s}
 }
 

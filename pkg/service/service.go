@@ -12,6 +12,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/pkg/provider"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
 var (
@@ -38,7 +39,9 @@ type Store interface {
 	FindByUsername(ctx context.Context, username string) ([]Message, error)
 }
 
-func NewService(s Store, p map[string]provider.Provider, logger log.Logger) Service {
+func NewService(ctx context.Context, s Store, p map[string]provider.Provider) Service {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "service")
 	return &service{s, p, logger}
 }
 
