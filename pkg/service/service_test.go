@@ -37,3 +37,19 @@ func TestFindLinks(t *testing.T) {
 		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
 	}
 }
+
+func TestExtractLink(t *testing.T) {
+	testCases := []struct {
+		in  string
+		out string
+	}{
+		{"foo", ""},
+		{"foo https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7", "https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7"},
+		{"foo\nhttps://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7", "https://open.spotify.com/track/643PW82aBMUa1FiWi5VQY7"},
+	}
+	for k, c := range testCases {
+		res, err := extractLink(c.in)
+		require.NoError(t, err)
+		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
+	}
+}
