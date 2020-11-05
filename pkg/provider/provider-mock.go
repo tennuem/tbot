@@ -7,7 +7,7 @@ func NewMockProvider() Provider {
 type mockProvider struct{}
 
 func (p *mockProvider) Host() string {
-	return "test_host"
+	return "example.com"
 }
 
 func (p *mockProvider) GetTitle(url string) (string, error) {
