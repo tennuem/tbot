@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,88 +15,74 @@ import (
 	"github.com/tennuem/tbot/internal/store"
 	"github.com/tennuem/tbot/pkg/provider"
 	"github.com/tennuem/tbot/pkg/service"
-	"github.com/tennuem/tbot/tools/logger"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
-func NewServer() *Server {
+type Server interface {
+	Run(ctx context.Context) error
+}
+
+func NewServer() Server {
+	return &server{}
+}
+
+type server struct {
+	group run.Group
+}
+
+func (s *server) Run(ctx context.Context) error {
+	s.signal()
 	cfg := configs.NewConfig()
 	if err := cfg.Read(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to init config: %s", err)
-		os.Exit(1)
+		return errors.Wrap(err, "failed to init config")
 	}
 	if err := cfg.Print(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to print config: %s", err)
-		os.Exit(1)
+		return errors.Wrap(err, "failed to print config")
 	}
-	logger, err := logger.NewLogger(cfg.Logger.Level)
+	logger, err := logging.NewLogger(cfg.Logger.Level)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to init logger: %s", err)
-		os.Exit(1)
+		return errors.Wrap(err, "failed to init logger")
 	}
+	ctx = logging.WithContext(ctx, logger)
 	ms, err := store.NewMongoStore(cfg.MongoDB.Addr)
 	if err != nil {
-		level.Error(logger).Log("err", errors.Wrap(err, "failed to init mongo client"))
-		os.Exit(1)
+		return errors.Wrap(err, "failed to init mongo store")
 	}
-	svc := service.NewService(
-		ms,
-		map[string]provider.Provider{
-			"music.yandex.com":  provider.NewYandexProvider(log.With(logger, "component", "yandex")),
-			"music.youtube.com": provider.NewYoutubeProvider(log.With(logger, "component", "youtube")),
-			"music.apple.com":   provider.NewAppleProvider(log.With(logger, "component", "apple")),
-			"open.spotify.com": provider.NewSpotifyProvider(
-				log.With(logger, "component", "spotify"),
-				cfg.Spotify.ClientID,
-				cfg.Spotify.ClientSecret),
-		},
-		log.With(logger, "component", "service"),
-	)
-	svc = service.NewLoggingService(log.With(logger, "component", "service"), svc)
-	svr := Server{
-		handler: service.MakeBotHandler(svc, logger),
-		logger:  log.With(logger, "component", "server"),
+	svc := service.NewService(ctx, ms)
+	svc.AddProvider(provider.NewYandexProvider(ctx))
+	svc.AddProvider(provider.NewYoutubeProvider(ctx))
+	svc.AddProvider(provider.NewAppleProvider(ctx))
+	svc.AddProvider(provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret))
+	svc = service.NewLoggingService(ctx, svc)
+	if err := s.bot(ctx, cfg.Telegram.Token, service.MakeBotHandler(svc, logger)); err != nil {
+		return errors.Wrap(err, "failed to init telegram bot")
 	}
-	svr.runBot(cfg.Telegram.Token)
-	svr.runSignalHandler()
-	return &svr
+	return logger.Log("exit", s.group.Run())
 }
 
-type Server struct {
-	handler bot.Handler
-	logger  log.Logger
-	group   run.Group
-}
-
-func (s *Server) Run() error {
-	return s.logger.Log("exit", s.group.Run())
-}
-
-func (s *Server) runBot(token string) {
+func (s *server) bot(ctx context.Context, token string, handler bot.Handler) error {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "telegram bot")
 	listener, err := bot.Listen(token)
 	if err != nil {
-		level.Error(s.logger).Log("err", errors.Wrap(err, "failed to init telegram bot"))
-		os.Exit(1)
+		return errors.Wrap(err, "start listen")
 	}
 	s.group.Add(func() error {
-		level.Info(s.logger).Log("msg", "start telegram bot")
-		return listener.Listen(s.handler)
+		level.Info(logger).Log("msg", "start listen")
+		return listener.Listen(handler)
 	}, func(error) {
+		level.Info(logger).Log("msg", "stop listen")
 		listener.Close()
 	})
+	return nil
 }
 
-func (s *Server) runSignalHandler() {
-	ch := make(chan struct{})
+func (s *server) signal() {
+	c := make(chan os.Signal, 1)
 	s.group.Add(func() error {
-		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		select {
-		case sig := <-c:
-			return errors.Errorf("received signal %s\n", sig)
-		case <-ch:
-			return nil
-		}
+		return errors.Errorf("received signal %s", <-c)
 	}, func(error) {
-		close(ch)
+		close(c)
 	})
 }

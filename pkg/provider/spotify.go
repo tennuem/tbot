@@ -8,23 +8,31 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/tennuem/tbot/tools/logging"
 	spotifyAPI "github.com/zmb3/spotify"
 	"golang.org/x/oauth2/clientcredentials"
 	"golang.org/x/oauth2/spotify"
 )
 
-func NewSpotifyProvider(logger log.Logger, cid, csecret string) Provider {
+func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "spotify")
 	cfg := clientcredentials.Config{
 		ClientID:     cid,
 		ClientSecret: csecret,
 		TokenURL:     spotify.Endpoint.TokenURL,
 	}
-	return &spotifyProvider{cfg, logger}
+	return &spotifyProvider{"open.spotify.com", cfg, logger}
 }
 
 type spotifyProvider struct {
+	host   string
 	cfg    clientcredentials.Config
 	logger log.Logger
+}
+
+func (p *spotifyProvider) Host() string {
+	return p.host
 }
 
 func (p *spotifyProvider) GetTitle(url string) (string, error) {

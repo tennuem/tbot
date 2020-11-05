@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,14 +10,22 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
-func NewYoutubeProvider(logger log.Logger) Provider {
-	return &youtubeProvider{logger}
+func NewYoutubeProvider(ctx context.Context) Provider {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "youtube")
+	return &youtubeProvider{"music.youtube.com", logger}
 }
 
 type youtubeProvider struct {
+	host   string
 	logger log.Logger
+}
+
+func (p *youtubeProvider) Host() string {
+	return p.host
 }
 
 func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {

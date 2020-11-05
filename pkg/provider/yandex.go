@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,14 +10,22 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
-func NewYandexProvider(logger log.Logger) Provider {
-	return &yandexProvider{logger}
+func NewYandexProvider(ctx context.Context) Provider {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "yandex")
+	return &yandexProvider{"music.yandex.com", logger}
 }
 
 type yandexProvider struct {
+	host   string
 	logger log.Logger
+}
+
+func (p *yandexProvider) Host() string {
+	return p.host
 }
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {

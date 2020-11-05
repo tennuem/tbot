@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,14 +10,22 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
-func NewAppleProvider(logger log.Logger) Provider {
-	return &appleProvider{logger}
+func NewAppleProvider(ctx context.Context) Provider {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "apple")
+	return &appleProvider{"music.yandex.com", logger}
 }
 
 type appleProvider struct {
+	host   string
 	logger log.Logger
+}
+
+func (p *appleProvider) Host() string {
+	return p.host
 }
 
 func (p *appleProvider) GetTitle(url string) (string, error) {
