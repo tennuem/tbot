@@ -84,6 +84,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 			res = append(res, u)
 		}
 	}
+	m.URL = link
 	m.Links = res
 	if err := s.store.Save(ctx, m); err != nil {
 		level.Error(s.logger).Log("err", err)
