@@ -26,7 +26,7 @@ func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
 	}
 	p := &spotifyProvider{logger: logger}
 	go func() {
-		for range time.Tick(time.Second * 1) {
+		for range time.NewTicker(time.Second * 1).C {
 			select {
 			case <-ctx.Done():
 				level.Error(logger).Log("err", ctx.Err())
