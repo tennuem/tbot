@@ -25,7 +25,7 @@ type youtubeProvider struct {
 }
 
 func (p *youtubeProvider) Host() string {
-	return "https://www.google.ru"
+	return "music.youtube.com"
 }
 
 func (p *youtubeProvider) GetTitle(url string) (string, error) {

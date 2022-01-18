@@ -25,7 +25,7 @@ type appleProvider struct {
 }
 
 func (p *appleProvider) Host() string {
-	return p.host
+	return "music.apple.com"
 }
 
 func (p *appleProvider) GetTitle(url string) (string, error) {

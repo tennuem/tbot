@@ -25,7 +25,7 @@ type yandexProvider struct {
 }
 
 func (p *yandexProvider) Host() string {
-	return p.host
+	return "music.yandex.com"
 }
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {

@@ -61,7 +61,7 @@ type spotifyProvider struct {
 }
 
 func (p *spotifyProvider) Host() string {
-	return ""
+	return "open.spotify.com"
 }
 
 func (p *spotifyProvider) GetTitle(url string) (string, error) {
