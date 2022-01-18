@@ -37,7 +37,7 @@ func TestYandexProviderGetTitle(t *testing.T) {
 
 func TestYandexProviderGetURL(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><a href="/album/2832579/track/694683" class="d-track__title"> BFG Division </a></html>`))
+		w.Write([]byte(`<html><div id="search"><div class="g"><a href="https://music.yandex.com/album/2832579/track/694683"></a></div></div></html>`))
 	}))
 	defer ts.Close()
 	testData := []struct {
@@ -46,7 +46,7 @@ func TestYandexProviderGetURL(t *testing.T) {
 	}{
 		{
 			"Highway to Hell — AC/DC",
-			ts.URL + "/album/2832579/track/694683",
+			"https://music.yandex.com/album/2832579/track/694683",
 		},
 	}
 	p := yandexProvider{

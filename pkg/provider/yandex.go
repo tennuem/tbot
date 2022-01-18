@@ -3,19 +3,20 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/tennuem/tbot/tools/logging"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 func NewYandexProvider(ctx context.Context) Provider {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "yandex")
-	return &yandexProvider{"https://music.yandex.com", logger}
+	return &yandexProvider{"https://google.ru", logger}
 }
 
 type yandexProvider struct {
@@ -28,7 +29,13 @@ func (p *yandexProvider) Host() string {
 }
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
+	client := new(http.Client)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -52,25 +59,27 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 		return "", err
 	}
 	q := u.Query()
-	q.Set("text", title)
+	q.Set("q", fmt.Sprintf("%s yandex music", title))
 	u.RawQuery = q.Encode()
-
-	resp, err := http.Get(u.String())
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
+	client := new(http.Client)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
-
-	href, ok := doc.Find("a.d-track__title").First().Attr("href")
+	link, ok := doc.Find("#search .g a").First().Attr("href")
 	if !ok {
 		return "", ErrURLNotFound
 	}
-	link := fmt.Sprintf("%s%s", p.host, href)
 	level.Info(p.logger).Log("method", "GetURL", "msg", link)
 	return link, nil
 }

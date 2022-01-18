@@ -29,7 +29,13 @@ func (p *appleProvider) Host() string {
 }
 
 func (p *appleProvider) GetTitle(url string) (string, error) {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
+	client := new(http.Client)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
