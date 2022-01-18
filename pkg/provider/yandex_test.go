@@ -12,7 +12,7 @@ import (
 
 func TestYandexProviderGetTitle(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><title>Highway to Hell — AC/DC</title></html>`))
+		w.Write([]byte(`<html><div class="sidebar__title"><a class="d-link">Highway to Hell </a></div><div class="sidebar__info"><a class="d-link">AC/DC </a></div></html>`))
 	}))
 	defer ts.Close()
 	testData := []struct {
@@ -37,7 +37,7 @@ func TestYandexProviderGetTitle(t *testing.T) {
 
 func TestYandexProviderGetURL(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><a class="d-track__title" href="/album/2832579/track/694683"></a></html>`))
+		w.Write([]byte(`<html><a href="/album/2832579/track/694683" class="d-track__title"> BFG Division </a></html>`))
 	}))
 	defer ts.Close()
 	testData := []struct {

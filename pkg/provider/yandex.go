@@ -3,14 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strings"
-
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/tennuem/tbot/tools/logging"
+	"net/http"
+	"net/url"
+	"strings"
 )
 
 func NewYandexProvider(ctx context.Context) Provider {
@@ -34,14 +33,15 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return "", err
 	}
-
-	ss := strings.Split(doc.Find("title").First().Text(), ". ")
-	title := ss[0]
+	track := doc.Find(".sidebar__title a.d-link").Text()
+	track = strings.TrimSuffix(track, " ")
+	author := doc.Find(".sidebar__info a.d-link").Text()
+	author = strings.TrimSuffix(author, " ")
+	title := fmt.Sprintf("%s — %s", track, author)
 	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
 	return title, nil
 }
