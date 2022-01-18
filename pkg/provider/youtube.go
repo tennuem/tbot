@@ -16,20 +16,20 @@ import (
 func NewYoutubeProvider(ctx context.Context) Provider {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "youtube")
-	return &youtubeProvider{"music.youtube.com", logger}
+	return &youtubeProvider{"https://www.google.ru", logger}
 }
 
 type youtubeProvider struct {
-	host   string
+	host   string //"https://music.youtube.com"
 	logger log.Logger
 }
 
 func (p *youtubeProvider) Host() string {
-	return p.host
+	return "https://www.google.ru"
 }
 
-func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
-	req, err := http.NewRequest("GET", rawUrl, nil)
+func (p *youtubeProvider) GetTitle(url string) (string, error) {
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -61,8 +61,7 @@ func (p *youtubeProvider) GetTitle(rawUrl string) (string, error) {
 }
 
 func (p *youtubeProvider) GetURL(title string) (string, error) {
-	purl := "https://www.google.ru"
-	u, err := url.Parse(fmt.Sprintf("%s/search", purl))
+	u, err := url.Parse(fmt.Sprintf("%s/search", p.host))
 	if err != nil {
 		return "", err
 	}

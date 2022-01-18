@@ -16,7 +16,7 @@ import (
 func NewYandexProvider(ctx context.Context) Provider {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "yandex")
-	return &yandexProvider{"music.yandex.com", logger}
+	return &yandexProvider{"https://music.yandex.com", logger}
 }
 
 type yandexProvider struct {
@@ -47,8 +47,7 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *yandexProvider) GetURL(title string) (string, error) {
-	purl := "https://music.yandex.com"
-	u, err := url.Parse(fmt.Sprintf("%s/search", purl))
+	u, err := url.Parse(fmt.Sprintf("%s/search", p.host))
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +70,7 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 	if !ok {
 		return "", ErrURLNotFound
 	}
-	link := fmt.Sprintf("%s%s", purl, href)
+	link := fmt.Sprintf("%s%s", p.host, href)
 	level.Info(p.logger).Log("method", "GetURL", "msg", link)
 	return link, nil
 }
