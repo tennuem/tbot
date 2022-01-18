@@ -51,9 +51,7 @@ func encodeFindLinksResponse(ctx context.Context, w bot.ResponseWriter, response
 
 func decodeGetListRequest(_ context.Context, r *bot.Request) (interface{}, error) {
 	username := r.Message.CommandArguments()
-	if strings.HasPrefix(username, "@") {
-		username = strings.TrimPrefix(username, "@")
-	}
+	username = strings.TrimPrefix(username, "@")
 	if len(username) == 0 {
 		username = r.Message.From.UserName
 	}

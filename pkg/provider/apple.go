@@ -16,7 +16,7 @@ import (
 func NewAppleProvider(ctx context.Context) Provider {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "apple")
-	return &appleProvider{"music.yandex.com", logger}
+	return &appleProvider{"https://google.ru", logger}
 }
 
 type appleProvider struct {
@@ -42,7 +42,8 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ss := reg.FindStringSubmatch(doc.Find("title").Text())
+	sel := doc.Find("title").Text()
+	ss := reg.FindStringSubmatch(sel)
 	if ss == nil {
 		return "", ErrTitleNotFound
 	}
@@ -52,8 +53,7 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *appleProvider) GetURL(title string) (string, error) {
-	purl := "https://google.ru"
-	u, err := url.Parse(fmt.Sprintf("%s/search", purl))
+	u, err := url.Parse(fmt.Sprintf("%s/search", p.host))
 	if err != nil {
 		return "", err
 	}

@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/tools/logging"
 	spotifyAPI "github.com/zmb3/spotify"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"golang.org/x/oauth2/spotify"
 )
@@ -22,28 +24,50 @@ func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
 		ClientSecret: csecret,
 		TokenURL:     spotify.Endpoint.TokenURL,
 	}
-	return &spotifyProvider{"open.spotify.com", cfg, logger}
+	p := &spotifyProvider{logger: logger}
+	go func() {
+		for range time.NewTicker(time.Second * 1).C {
+			select {
+			case <-ctx.Done():
+				level.Error(logger).Log("err", ctx.Err())
+				return
+			default:
+				if p.token.Valid() {
+					continue
+				}
+				token, err := cfg.Token(context.Background())
+				if err != nil {
+					level.Error(logger).Log("get token", err)
+					continue
+				}
+				p.token = token
+				c := spotifyAPI.Authenticator{}.NewClient(token)
+				p.client = &c
+			}
+		}
+	}()
+	return p
+}
+
+type spotifyClient interface {
+	GetTrack(id spotifyAPI.ID) (*spotifyAPI.FullTrack, error)
+	Search(query string, t spotifyAPI.SearchType) (*spotifyAPI.SearchResult, error)
 }
 
 type spotifyProvider struct {
-	host   string
-	cfg    clientcredentials.Config
+	token  *oauth2.Token
+	client spotifyClient
 	logger log.Logger
 }
 
 func (p *spotifyProvider) Host() string {
-	return p.host
+	return ""
 }
 
 func (p *spotifyProvider) GetTitle(url string) (string, error) {
 	substr := "track/"
 	id := url[strings.Index(url, substr)+len(substr):]
-	token, err := p.cfg.Token(context.Background())
-	if err != nil {
-		return "", errors.Wrap(err, "get token")
-	}
-	api := spotifyAPI.Authenticator{}.NewClient(token)
-	track, err := api.GetTrack(spotifyAPI.ID(id))
+	track, err := p.client.GetTrack(spotifyAPI.ID(id))
 	if err != nil {
 		return "", errors.Wrap(err, "get track")
 	}
@@ -57,12 +81,7 @@ func (p *spotifyProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *spotifyProvider) GetURL(title string) (string, error) {
-	token, err := p.cfg.Token(context.Background())
-	if err != nil {
-		return "", errors.Wrap(err, "get token")
-	}
-	api := spotifyAPI.Authenticator{}.NewClient(token)
-	results, err := api.Search(title, spotifyAPI.SearchTypeTrack)
+	results, err := p.client.Search(title, spotifyAPI.SearchTypeTrack)
 	if err != nil {
 		return "", errors.Wrap(err, "search track")
 	}

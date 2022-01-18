@@ -1,28 +1,33 @@
 package provider
 
 import (
-	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestYoutubeProviderGetTitle(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html><meta property="og:video:tag" content="Highway to Hell — AC/DC"></html>`))
+	}))
+	defer ts.Close()
 	testData := []struct {
 		in  string
 		out string
 	}{
 		{
-			"https://music.youtube.com/watch?v=IA1H1--5GFM&feature=share",
-			"A$AP Rocky Babushka Boi",
-		},
-		{
-			"https://music.youtube.com/watch?v=otl8yjZcg2Y&feature=share",
-			"Ghostemane Shakewell Pouya & Erick the Architect Death by Dishonor",
+			ts.URL + "/watch?v=ikFFVfObwss&feature=share",
+			"Highway to Hell — AC/DC",
 		},
 	}
-	p := NewYoutubeProvider(context.Background())
+	p := youtubeProvider{
+		host:   ts.URL,
+		logger: log.NewNopLogger(),
+	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
 		require.NoError(t, err)
@@ -31,16 +36,23 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 }
 
 func TestYoutubeProviderGetURL(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html><div id="search"><div class="g"><a href="https://www.youtube.com/watch?v=ikFFVfObwss&feature=share"></a></div></div></html>`))
+	}))
+	defer ts.Close()
 	testData := []struct {
 		in  string
 		out string
 	}{
 		{
-			"Babushka Boi - A$AP Rocky",
-			"https://music.youtube.com/watch?v=KViOTZ62zBg",
+			"Highway to Hell — AC/DC",
+			"https://music.youtube.com/watch?v=ikFFVfObwss&feature=share",
 		},
 	}
-	p := NewYoutubeProvider(context.Background())
+	p := youtubeProvider{
+		host:   ts.URL,
+		logger: log.NewNopLogger(),
+	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
 		require.NoError(t, err)
