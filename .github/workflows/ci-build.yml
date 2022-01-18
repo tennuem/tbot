@@ -14,8 +14,8 @@ jobs:
       - name: publish docker image to registry
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | \
-          docker login docker.pkg.github.com \
+          docker login ghcr.io \
           --username ${{ secrets.DOCKER_USERNAME }} \
           --password-stdin
-          docker tag tbot docker.pkg.github.com/tennuem/tbot/tbot:latest
-          docker push docker.pkg.github.com/tennuem/tbot/tbot:latest
+          docker tag tbot ghcr.io/tennuem/tbot/tbot:latest
+          docker push ghcr.io/tennuem/tbot/tbot:latest
