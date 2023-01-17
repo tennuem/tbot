@@ -18,6 +18,7 @@ var options = []option{
 	{"spotify.client_id", "string", "cid", "spotify client id"},
 	{"spotify.client_secret", "string", "csecret", "spotify secret"},
 	{"mongodb.addr", "string", "mongodb://root:root@localhost:27017/?ssl=false", "mongo addr"},
+	{"sqlite.data_source", "string", "./tbot.db", "sqlite data source name"},
 	{"logger.level", "string", "info", "logger level"},
 }
 
@@ -31,6 +32,9 @@ type Config struct {
 	}
 	MongoDB struct {
 		Addr string
+	}
+	SqLite struct {
+		DataSource string `mapstructure:"data_source"`
 	}
 	Logger struct {
 		Level string

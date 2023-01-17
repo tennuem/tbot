@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/configs"
 	"github.com/tennuem/tbot/internal/bot"
-	"github.com/tennuem/tbot/internal/store"
+	"github.com/tennuem/tbot/internal/store/sqlite"
 	"github.com/tennuem/tbot/pkg/provider"
 	"github.com/tennuem/tbot/pkg/service"
 	"github.com/tennuem/tbot/tools/logging"
@@ -44,9 +44,9 @@ func (s *server) Run(ctx context.Context) error {
 		return errors.Wrap(err, "failed to init logger")
 	}
 	ctx = logging.WithContext(ctx, logger)
-	ms, err := store.NewMongoStore(cfg.MongoDB.Addr)
+	ms, err := sqlite.NewSqLiteStore(cfg.SqLite.DataSource)
 	if err != nil {
-		return errors.Wrap(err, "failed to init mongo store")
+		return errors.Wrap(err, "failed to init sqLite store")
 	}
 	svc := service.NewService(ctx, ms)
 	svc.AddProvider(provider.NewYandexProvider(ctx))
