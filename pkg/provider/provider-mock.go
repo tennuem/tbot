@@ -6,6 +6,10 @@ func NewMockProvider() Provider {
 
 type mockProvider struct{}
 
+func (p *mockProvider) Host() string {
+	return "example.com"
+}
+
 func (p *mockProvider) GetTitle(url string) (string, error) {
 	return "test_title", nil
 }

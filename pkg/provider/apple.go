@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,18 +10,32 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/tennuem/tbot/tools/logging"
 )
 
-func NewAppleProvider(logger log.Logger) Provider {
-	return &appleProvider{logger}
+func NewAppleProvider(ctx context.Context) Provider {
+	logger := logging.FromContext(ctx)
+	logger = log.With(logger, "component", "apple")
+	return &appleProvider{"https://google.ru", logger}
 }
 
 type appleProvider struct {
+	host   string
 	logger log.Logger
 }
 
+func (p *appleProvider) Host() string {
+	return "music.apple.com"
+}
+
 func (p *appleProvider) GetTitle(url string) (string, error) {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
+	client := new(http.Client)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -33,7 +48,8 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ss := reg.FindStringSubmatch(doc.Find("title").Text())
+	sel := doc.Find("title").Text()
+	ss := reg.FindStringSubmatch(sel)
 	if ss == nil {
 		return "", ErrTitleNotFound
 	}
@@ -43,8 +59,7 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *appleProvider) GetURL(title string) (string, error) {
-	purl := "https://google.ru"
-	u, err := url.Parse(fmt.Sprintf("%s/search", purl))
+	u, err := url.Parse(fmt.Sprintf("%s/search", p.host))
 	if err != nil {
 		return "", err
 	}

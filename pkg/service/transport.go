@@ -51,9 +51,7 @@ func encodeFindLinksResponse(ctx context.Context, w bot.ResponseWriter, response
 
 func decodeGetListRequest(_ context.Context, r *bot.Request) (interface{}, error) {
 	username := r.Message.CommandArguments()
-	if strings.HasPrefix(username, "@") {
-		username = strings.TrimPrefix(username, "@")
-	}
+	username = strings.TrimPrefix(username, "@")
 	if len(username) == 0 {
 		username = r.Message.From.UserName
 	}
@@ -79,6 +77,8 @@ type errorer interface {
 func encodeError(_ context.Context, err error, w bot.ResponseWriter) {
 	switch errors.Cause(err) {
 	case ErrProviderNotFound:
+		return
+	case ErrLinkNotFound:
 		return
 	default:
 		w.Write([]byte(err.Error()))

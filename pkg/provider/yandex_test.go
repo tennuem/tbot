@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/go-kit/kit/log"
@@ -9,16 +11,23 @@ import (
 )
 
 func TestYandexProviderGetTitle(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html><div class="sidebar__title"><a class="d-link">Highway to Hell </a></div><div class="sidebar__info"><a class="d-link">AC/DC </a></div></html>`))
+	}))
+	defer ts.Close()
 	testData := []struct {
 		in  string
 		out string
 	}{
 		{
-			"https://music.yandex.com/album/8508157/track/57016085",
-			"Babushka Boi — A$AP Rocky",
+			ts.URL + "/album/2832579/track/694683",
+			"Highway to Hell — AC/DC",
 		},
 	}
-	p := NewYandexProvider(log.NewNopLogger())
+	p := yandexProvider{
+		host:   ts.URL,
+		logger: log.NewNopLogger(),
+	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
 		require.NoError(t, err)
@@ -27,16 +36,23 @@ func TestYandexProviderGetTitle(t *testing.T) {
 }
 
 func TestYandexProviderGetURL(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html><div id="search"><div class="g"><a href="https://music.yandex.com/album/2832579/track/694683"></a></div></div></html>`))
+	}))
+	defer ts.Close()
 	testData := []struct {
 		in  string
 		out string
 	}{
 		{
-			"Babushka Boi — A$AP Rocky",
-			"https://music.yandex.com/album/8508157/track/57016085",
+			"Highway to Hell — AC/DC",
+			"https://music.yandex.com/album/2832579/track/694683",
 		},
 	}
-	p := NewYandexProvider(log.NewNopLogger())
+	p := yandexProvider{
+		host:   ts.URL,
+		logger: log.NewNopLogger(),
+	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
 		require.NoError(t, err)
