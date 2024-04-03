@@ -27,6 +27,7 @@ func (p *yandexProvider) Host() string {
 }
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {
+	fmt.Println(url)
 	substr := "track/"
 	sid := url[strings.Index(url, substr)+len(substr):]
 	id, err := strconv.Atoi(sid)
@@ -51,15 +52,16 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *yandexProvider) GetURL(title string) (string, error) {
+	fmt.Println(title)
 	resp, _, err := p.client.Search().Tracks(context.Background(), title, nil)
 	if err != nil {
 		return "", err
 	}
 	if len(resp.Result.Tracks.Results) == 0 {
-		return "", ErrURLNotFound
+		return "", fmt.Errorf("result is empty")
 	}
 	if len(resp.Result.Tracks.Results[0].Albums) == 0 {
-		return "", ErrURLNotFound
+		return "", fmt.Errorf("albums is empty")
 	}
 
 	trackID := resp.Result.Tracks.Results[0].ID
