@@ -1,11 +1,11 @@
 package provider
 
 import (
-	"github.com/go-kit/kit/log"
-	spotifyAPI "github.com/zmb3/spotify"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	spotifyAPI "github.com/zmb3/spotify"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +23,6 @@ func TestSpotifyProviderGetTitle(t *testing.T) {
 	}
 	p := spotifyProvider{
 		client: &spotifyClientMock{},
-		logger: log.NewNopLogger(),
 	}
 	for _, c := range testCases {
 		res, err := p.GetTitle(c.in)
@@ -48,7 +47,6 @@ func TestSpotifyProviderGetURL(t *testing.T) {
 	}
 	p := spotifyProvider{
 		client: &spotifyClientMock{},
-		logger: log.NewNopLogger(),
 	}
 	for _, c := range testCases {
 		res, err := p.GetURL(c.in)

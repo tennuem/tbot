@@ -3,7 +3,6 @@ package provider
 import (
 	"testing"
 
-	"github.com/go-kit/kit/log"
 	"github.com/ndrewnee/go-yamusic/yamusic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +19,6 @@ func TestYandexProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := yandexProvider{
-		logger: log.NewNopLogger(),
 		client: yamusic.NewClient(),
 	}
 	for _, c := range testData {
@@ -41,7 +39,6 @@ func TestYandexProviderGetURL(t *testing.T) {
 		},
 	}
 	p := yandexProvider{
-		logger: log.NewNopLogger(),
 		client: yamusic.NewClient(),
 	}
 	for _, c := range testData {

@@ -8,20 +8,14 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
-	"github.com/tennuem/tbot/tools/logging"
 )
 
 func NewYoutubeProvider(ctx context.Context) Provider {
-	logger := logging.FromContext(ctx)
-	logger = log.With(logger, "component", "youtube")
-	return &youtubeProvider{"https://www.google.ru", logger}
+	return &youtubeProvider{host: "https://www.google.ru"}
 }
 
 type youtubeProvider struct {
-	host   string //"https://music.youtube.com"
-	logger log.Logger
+	host string //"https://music.youtube.com"
 }
 
 func (p *youtubeProvider) Name() string {
@@ -60,7 +54,6 @@ func (p *youtubeProvider) GetTitle(url string) (string, error) {
 		return "", ErrTitleNotFound
 	}
 	title := res[0 : len(res)-1]
-	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
 	return title, nil
 }
 
@@ -92,6 +85,5 @@ func (p *youtubeProvider) GetURL(title string) (string, error) {
 		return "", ErrURLNotFound
 	}
 	link := strings.Replace(href, "www.", "music.", -1)
-	level.Info(p.logger).Log("method", "GetURL", "msg", link)
 	return link, nil
 }

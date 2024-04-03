@@ -2,28 +2,21 @@ package service
 
 import (
 	"context"
+	"log"
 	"time"
-
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
-	"github.com/tennuem/tbot/tools/logging"
 )
 
-// NewLoggingService returns a new instance of a logging Service.
 func NewLoggingService(ctx context.Context, s Service) Service {
-	logger := logging.FromContext(ctx)
-	logger = log.With(logger, "component", "service")
-	return &loggingService{logger, s}
+	return &loggingService{s}
 }
 
 type loggingService struct {
-	logger log.Logger
 	Service
 }
 
 func (s *loggingService) FindLinks(ctx context.Context, m *Message) (res *Message, err error) {
 	defer func(begin time.Time) {
-		level.Info(s.logger).Log(
+		log.Println(
 			"method", "FindLinks",
 			"url", m.URL,
 			"username", m.Username,
@@ -36,7 +29,7 @@ func (s *loggingService) FindLinks(ctx context.Context, m *Message) (res *Messag
 
 func (s *loggingService) GetList(ctx context.Context, username string) (res string, err error) {
 	defer func(begin time.Time) {
-		level.Info(s.logger).Log(
+		log.Println(
 			"method", "GetList",
 			"username", username,
 			"took", time.Since(begin),

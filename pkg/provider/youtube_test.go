@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,8 +24,7 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := youtubeProvider{
-		host:   ts.URL,
-		logger: log.NewNopLogger(),
+		host: ts.URL,
 	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
@@ -50,8 +48,7 @@ func TestYoutubeProviderGetURL(t *testing.T) {
 		},
 	}
 	p := youtubeProvider{
-		host:   ts.URL,
-		logger: log.NewNopLogger(),
+		host: ts.URL,
 	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)

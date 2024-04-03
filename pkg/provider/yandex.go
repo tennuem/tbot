@@ -6,21 +6,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-kit/kit/log"
 	"github.com/ndrewnee/go-yamusic/yamusic"
-	"github.com/tennuem/tbot/tools/logging"
 )
 
 func NewYandexProvider(ctx context.Context) Provider {
-	logger := logging.FromContext(ctx)
-	logger = log.With(logger, "component", "yandex")
-
-	return &yandexProvider{logger: logger, client: yamusic.NewClient()}
+	return &yandexProvider{client: yamusic.NewClient()}
 }
 
 type yandexProvider struct {
 	host   string
-	logger log.Logger
 	client *yamusic.Client
 }
 

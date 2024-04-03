@@ -3,13 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/tennuem/tbot/tools/logging"
 	spotifyAPI "github.com/zmb3/spotify"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
@@ -17,17 +15,15 @@ import (
 )
 
 func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
-	logger := logging.FromContext(ctx)
-	logger = log.With(logger, "component", "spotify")
 	cfg := clientcredentials.Config{
 		ClientID:     cid,
 		ClientSecret: csecret,
 		TokenURL:     spotify.Endpoint.TokenURL,
 	}
-	p := &spotifyProvider{logger: logger}
+	p := &spotifyProvider{}
 	token, err := cfg.Token(context.Background())
 	if err != nil {
-		level.Error(logger).Log("get token", err)
+		log.Fatalln("get token", err)
 	}
 	c := spotifyAPI.Authenticator{}.NewClient(token)
 	p.client = &c
@@ -36,7 +32,7 @@ func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
 		for range time.NewTicker(time.Second * 1).C {
 			select {
 			case <-ctx.Done():
-				level.Error(logger).Log("err", ctx.Err())
+				log.Println("err", ctx.Err())
 				return
 			default:
 				if p.token.Valid() {
@@ -44,7 +40,7 @@ func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
 				}
 				token, err := cfg.Token(context.Background())
 				if err != nil {
-					level.Error(logger).Log("get token", err)
+					log.Println("get token", err)
 					continue
 				}
 				p.token = token
@@ -64,7 +60,6 @@ type spotifyClient interface {
 type spotifyProvider struct {
 	token  *oauth2.Token
 	client spotifyClient
-	logger log.Logger
 }
 
 func (p *spotifyProvider) Name() string {
@@ -87,7 +82,6 @@ func (p *spotifyProvider) GetTitle(url string) (string, error) {
 		artists = append(artists, a.Name)
 	}
 	title := fmt.Sprintf("%s — %s", track.Name, strings.Join(artists, ", "))
-	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
 	return title, nil
 }
 

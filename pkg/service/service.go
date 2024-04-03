@@ -3,16 +3,13 @@ package service
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 	"strings"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/pkg/provider"
-	"github.com/tennuem/tbot/tools/logging"
 )
 
 var (
@@ -46,21 +43,17 @@ type Store interface {
 }
 
 func NewService(ctx context.Context, s Store) Service {
-	logger := logging.FromContext(ctx)
-	logger = log.With(logger, "component", "service")
-	return &service{store: s, logger: logger}
+	return &service{store: s}
 }
 
 type service struct {
 	store     Store
 	providers map[string]provider.Provider
-	logger    log.Logger
 }
 
 func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 	link, err := extractLink(m.URL)
 	if err != nil || len(link) == 0 {
-		level.Error(s.logger).Log("err", errors.Wrap(err, "extract link"))
 		return nil, ErrLinkNotFound
 	}
 	u, err := parseURL(link)
@@ -77,7 +70,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 	link = u.String()
 	msg, err := s.store.FindByURL(ctx, link)
 	if err != nil {
-		level.Error(s.logger).Log("err", err)
+		log.Println("find url in store err:", err)
 	}
 	if msg != nil {
 		return nil, errors.Errorf("@%s has already share it", msg.Username)
@@ -94,7 +87,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 		}
 		u, err := v.GetURL(title)
 		if err != nil {
-			level.Error(s.logger).Log(fmt.Sprintf("failed to get url from: %v, by title %v", k, err.Error()))
+			log.Printf("failed to get url for provider: %s, by title: %s err: %v\n", k, title, err.Error())
 			continue
 		}
 		if len(u) == 0 {
@@ -105,7 +98,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 	m.URL = link
 	m.Links = res
 	if err := s.store.Save(ctx, m); err != nil {
-		level.Error(s.logger).Log("err", err)
+		log.Println("save result to store:", err)
 	}
 	return m, nil
 }

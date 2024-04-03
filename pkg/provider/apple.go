@@ -8,20 +8,14 @@ import (
 	"regexp"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
-	"github.com/tennuem/tbot/tools/logging"
 )
 
 func NewAppleProvider(ctx context.Context) Provider {
-	logger := logging.FromContext(ctx)
-	logger = log.With(logger, "component", "apple")
-	return &appleProvider{"https://google.ru", logger}
+	return &appleProvider{host: "https://google.ru"}
 }
 
 type appleProvider struct {
-	host   string
-	logger log.Logger
+	host string
 }
 
 func (p *appleProvider) Name() string {
@@ -58,7 +52,6 @@ func (p *appleProvider) GetTitle(url string) (string, error) {
 		return "", ErrTitleNotFound
 	}
 	title := fmt.Sprintf("%s - %s", ss[1], ss[2])
-	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
 	return title, nil
 }
 
@@ -89,6 +82,5 @@ func (p *appleProvider) GetURL(title string) (string, error) {
 	if !ok {
 		return "", ErrURLNotFound
 	}
-	level.Info(p.logger).Log("method", "GetURL", "msg", link)
 	return link, nil
 }

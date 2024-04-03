@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"github.com/go-kit/kit/log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,8 +24,7 @@ func TestAppleProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := appleProvider{
-		host:   ts.URL,
-		logger: log.NewNopLogger(),
+		host: ts.URL,
 	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
@@ -50,8 +48,7 @@ func TestAppleProviderGetURL(t *testing.T) {
 		},
 	}
 	p := appleProvider{
-		host:   ts.URL,
-		logger: log.NewNopLogger(),
+		host: ts.URL,
 	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
