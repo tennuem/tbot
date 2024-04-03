@@ -1,22 +1,20 @@
 name: test
 
-on:
-  push:
-    branches:
-    tags:
-  pull_request:
+on: [push]
     
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-
-      - name: install go
-        uses: actions/setup-go@v1
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
         with:
           go-version: 1.22.1
+
+      - name: Install dependencies
+        run: go mod vendor
 
       - name: test
         env:
