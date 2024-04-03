@@ -4,92 +4,54 @@ import (
 	"context"
 	"strings"
 
-	"github.com/go-kit/kit/log"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
-	"github.com/tennuem/tbot/internal/bot"
+	"github.com/tennuem/telegram"
 )
 
-func MakeBotHandler(s Service, logger log.Logger) bot.Handler {
-	h := bot.NewServeMux()
-	h.Handle("*", bot.NewServer(
-		makeFindLinksEndpoint(s),
-		decodeFindLinksRequest,
-		encodeFindLinksResponse,
-		logger,
-	))
-	h.Handle("/list", bot.NewServer(
-		makeGetListEndpoint(s),
-		decodeGetListRequest,
-		encodeGetListResponse,
-		logger,
-	))
-	h.HandleFunc("/help", func(w bot.ResponseWriter, r *bot.Request) {
-		w.Write([]byte("/ping - heathcheck\n/list - get list music\n"))
+var commandHelp = `
+/help - list commands description
+/ping - liveness probe
+/list - get list of tracks
+`
+
+func NewTelegramHandler(svc Service) telegram.Handler {
+	mux := telegram.NewServeMux()
+	mux.HandleFunc("/help", func(w *telegram.ResponseWriter, r *telegram.Request) {
+		w.Text = commandHelp
 	})
-	h.HandleFunc("/ping", func(w bot.ResponseWriter, r *bot.Request) {
-		w.Write([]byte("pong"))
+	mux.HandleFunc("/ping", func(w *telegram.ResponseWriter, r *telegram.Request) {
+		w.Text = "pong"
 	})
-	return h
-}
-
-func decodeFindLinksRequest(_ context.Context, r *bot.Request) (interface{}, error) {
-	return FindLinksRequest{
-		URL:      r.Message.Text,
-		Username: r.Message.From.UserName,
-	}, nil
-}
-
-func encodeFindLinksResponse(ctx context.Context, w bot.ResponseWriter, response interface{}) error {
-	if e, ok := response.(errorer); ok && e.error() != nil {
-		encodeError(ctx, e.error(), w)
-		return nil
-	}
-	resp := response.(FindLinksResponse)
-	w.Write([]byte(resp.Title))
-
-	var buttons []tgbotapi.InlineKeyboardButton
-	for _, v := range resp.Links {
-		buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(v.Provider, v.URL))
-	}
-	w.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(buttons...),
-	)
-	return nil
-}
-
-func decodeGetListRequest(_ context.Context, r *bot.Request) (interface{}, error) {
-	username := r.Message.CommandArguments()
-	username = strings.TrimPrefix(username, "@")
-	if len(username) == 0 {
-		username = r.Message.From.UserName
-	}
-	return GetListRequest{
-		Username: username,
-	}, nil
-}
-
-func encodeGetListResponse(ctx context.Context, w bot.ResponseWriter, response interface{}) error {
-	if e, ok := response.(errorer); ok && e.error() != nil {
-		encodeError(ctx, e.error(), w)
-		return nil
-	}
-	resp := response.(GetListResponse)
-	w.Write([]byte(resp.Msg))
-	return nil
-}
-
-type errorer interface {
-	error() error
-}
-
-func encodeError(_ context.Context, err error, w bot.ResponseWriter) {
-	switch errors.Cause(err) {
-	case ErrProviderNotFound:
-		return
-	case ErrLinkNotFound:
-		return
-	default:
-		w.Write([]byte(err.Error()))
-	}
+	mux.HandleFunc("*", func(w *telegram.ResponseWriter, r *telegram.Request) {
+		resp, err := svc.FindLinks(context.Background(), &Message{
+			URL:      r.Message.Text,
+			Username: r.Message.From.UserName,
+		})
+		if err != nil {
+			w.Text = err.Error()
+			return
+		}
+		var buttons []tgbotapi.InlineKeyboardButton
+		for _, v := range resp.Links {
+			buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(v.Provider, v.URL))
+		}
+		w.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(buttons...),
+		)
+		w.Text = resp.Title
+	})
+	mux.HandleFunc("/list", func(w *telegram.ResponseWriter, r *telegram.Request) {
+		username := r.Message.CommandArguments()
+		username = strings.TrimPrefix(username, "@")
+		if len(username) == 0 {
+			username = r.Message.From.UserName
+		}
+		resp, err := svc.GetList(context.Background(), username)
+		if err != nil {
+			w.Text = err.Error()
+			return
+		}
+		w.Text = resp
+	})
+	return mux
 }

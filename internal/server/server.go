@@ -11,11 +11,11 @@ import (
 	"github.com/oklog/run"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/configs"
-	"github.com/tennuem/tbot/internal/bot"
 	"github.com/tennuem/tbot/internal/store/sqlite"
 	"github.com/tennuem/tbot/pkg/provider"
 	"github.com/tennuem/tbot/pkg/service"
 	"github.com/tennuem/tbot/tools/logging"
+	"github.com/tennuem/telegram"
 )
 
 type Server interface {
@@ -54,25 +54,26 @@ func (s *server) Run(ctx context.Context) error {
 	svc.AddProvider(provider.NewAppleProvider(ctx))
 	svc.AddProvider(provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret))
 	svc = service.NewLoggingService(ctx, svc)
-	if err := s.bot(ctx, cfg.Telegram.Token, service.MakeBotHandler(svc, logger)); err != nil {
+
+	if err := s.bot(ctx, cfg.Telegram.Token, service.NewTelegramHandler(svc)); err != nil {
 		return errors.Wrap(err, "failed to init telegram bot")
 	}
 	return logger.Log("exit", s.group.Run())
 }
 
-func (s *server) bot(ctx context.Context, token string, handler bot.Handler) error {
+func (s *server) bot(ctx context.Context, token string, handler telegram.Handler) error {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "telegram bot")
-	listener, err := bot.Listen(token)
+	svr, close, err := telegram.NewServer(token)
 	if err != nil {
-		return errors.Wrap(err, "start listen")
+		return errors.Wrap(err, "start telegram server")
 	}
 	s.group.Add(func() error {
-		level.Info(logger).Log("msg", "start listen")
-		return listener.Listen(handler)
+		level.Info(logger).Log("msg", "start telegram server")
+		return svr.Serve(handler)
 	}, func(error) {
-		level.Info(logger).Log("msg", "stop listen")
-		listener.Close()
+		level.Info(logger).Log("msg", "stop telegram server")
+		close()
 	})
 	return nil
 }

@@ -1,6 +1,6 @@
 module github.com/tennuem/tbot
 
-go 1.18
+go 1.22.1
 
 require (
 	github.com/Masterminds/squirrel v1.5.3
@@ -14,6 +14,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
+	github.com/tennuem/telegram v0.0.1
 	github.com/zmb3/spotify v1.3.0
 	go.mongodb.org/mongo-driver v1.8.2
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
