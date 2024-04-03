@@ -3,25 +3,29 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
+	"strconv"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/ndrewnee/go-yamusic/yamusic"
 	"github.com/tennuem/tbot/tools/logging"
 )
 
 func NewYandexProvider(ctx context.Context) Provider {
 	logger := logging.FromContext(ctx)
 	logger = log.With(logger, "component", "yandex")
-	return &yandexProvider{"https://google.ru", logger}
+
+	return &yandexProvider{logger: logger, client: yamusic.NewClient()}
 }
 
 type yandexProvider struct {
 	host   string
 	logger log.Logger
+	client *yamusic.Client
+}
+
+func (p *yandexProvider) Name() string {
+	return "yandex"
 }
 
 func (p *yandexProvider) Host() string {
@@ -29,57 +33,43 @@ func (p *yandexProvider) Host() string {
 }
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	substr := "track/"
+	sid := url[strings.Index(url, substr)+len(substr):]
+	id, err := strconv.Atoi(sid)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
-	client := new(http.Client)
-	resp, err := client.Do(req)
+	tracks, _, err := p.client.Tracks().Get(context.Background(), id)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return "", err
+	if len(tracks.Result) == 0 {
+		return "", ErrTitleNotFound
 	}
-	track := doc.Find(".sidebar__title a.d-link").Text()
-	track = strings.TrimSuffix(track, " ")
-	author := doc.Find(".sidebar__info a.d-link").Text()
-	author = strings.TrimSuffix(author, " ")
-	title := fmt.Sprintf("%s — %s", track, author)
-	level.Info(p.logger).Log("method", "GetTitle", "msg", title)
-	return title, nil
+	if len(tracks.Result[0].Artists) == 0 {
+		return "", ErrTitleNotFound
+	}
+
+	track := tracks.Result[0].Title
+	author := tracks.Result[0].Artists[0].Name
+
+	return fmt.Sprintf("%s — %s", track, author), nil
 }
 
 func (p *yandexProvider) GetURL(title string) (string, error) {
-	u, err := url.Parse(fmt.Sprintf("%s/search", p.host))
+	resp, _, err := p.client.Search().Tracks(context.Background(), title, nil)
 	if err != nil {
 		return "", err
 	}
-	q := u.Query()
-	q.Set("q", fmt.Sprintf("%s yandex music", title))
-	u.RawQuery = q.Encode()
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
-	client := new(http.Client)
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	link, ok := doc.Find("#search .g a").First().Attr("href")
-	if !ok {
+	if len(resp.Result.Tracks.Results) == 0 {
 		return "", ErrURLNotFound
 	}
-	level.Info(p.logger).Log("method", "GetURL", "msg", link)
-	return link, nil
+	if len(resp.Result.Tracks.Results[0].Albums) == 0 {
+		return "", ErrURLNotFound
+	}
+
+	trackID := resp.Result.Tracks.Results[0].ID
+	albumID := resp.Result.Tracks.Results[0].Albums[0].ID
+
+	return fmt.Sprintf("https://music.yandex.ru/album/%d/track/%d", albumID, trackID), nil
 }
