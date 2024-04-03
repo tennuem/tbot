@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
@@ -25,10 +24,15 @@ func NewTelegramHandler(svc Service) telegram.Handler {
 	})
 	mux.HandleFunc("*", func(w *telegram.ResponseWriter, r *telegram.Request) {
 		resp, err := svc.FindLinks(context.Background(), &Message{
-			URL:      r.Message.Text,
-			Username: r.Message.From.UserName,
+			URL:    r.Message.Text,
+			UserID: r.Message.From.ID,
 		})
 		if errors.Is(err, ErrLinkNotFound) {
+			return
+		}
+		if errors.Is(err, ErrHasAlreadyShare) {
+			w.Text = ErrHasAlreadyShare.Error()
+			w.ReplyToMessageID = r.Message.MessageID
 			return
 		}
 		if err != nil {
@@ -45,12 +49,7 @@ func NewTelegramHandler(svc Service) telegram.Handler {
 		w.Text = resp.Title
 	})
 	mux.HandleFunc("/list", func(w *telegram.ResponseWriter, r *telegram.Request) {
-		username := r.Message.CommandArguments()
-		username = strings.TrimPrefix(username, "@")
-		if len(username) == 0 {
-			username = r.Message.From.UserName
-		}
-		resp, err := svc.GetList(context.Background(), username)
+		resp, err := svc.GetList(context.Background(), r.Message.From.ID)
 		if err != nil {
 			w.Text = err.Error()
 			return

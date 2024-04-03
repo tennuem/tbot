@@ -43,12 +43,12 @@ func (s *storeMock) FindByURL(ctx context.Context, url string) (*Message, error)
 	return m, nil
 }
 
-func (s *storeMock) FindByUsername(ctx context.Context, username string) ([]Message, error) {
+func (s *storeMock) FindByUser(ctx context.Context, userID int) ([]Message, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var res []Message
 	for _, m := range s.m {
-		if m.Username == username {
+		if m.UserID == userID {
 			res = append(res, *m)
 		}
 	}

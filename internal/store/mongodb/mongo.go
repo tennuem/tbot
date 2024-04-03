@@ -43,12 +43,12 @@ func (s *mongoStore) FindByURL(ctx context.Context, url string) (*service.Messag
 	return &m, nil
 }
 
-func (s *mongoStore) FindByUsername(ctx context.Context, username string) ([]service.Message, error) {
+func (s *mongoStore) FindByUser(ctx context.Context, userID int) ([]service.Message, error) {
 	var m []service.Message
 	opts := options.Find()
 	opts.SetLimit(10)
 	collection := s.client.Database("tbot").Collection("links")
-	cur, err := collection.Find(ctx, bson.D{{"username", username}}, opts)
+	cur, err := collection.Find(ctx, bson.D{{"user_id", userID}}, opts)
 	if err != nil {
 		return nil, err
 	}

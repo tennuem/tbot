@@ -16,11 +16,12 @@ var (
 	ErrProviderNotFound = errors.New("provider not found")
 	ErrLinkNotFound     = errors.New("link not found in message")
 	ErrLinksNotFound    = errors.New("links not found")
+	ErrHasAlreadyShare  = errors.New("already share it")
 )
 
 type Service interface {
 	FindLinks(ctx context.Context, m *Message) (*Message, error)
-	GetList(ctx context.Context, username string) (string, error)
+	GetList(ctx context.Context, userID int) (string, error)
 	AddProvider(p provider.Provider)
 }
 
@@ -30,16 +31,16 @@ type Link struct {
 }
 
 type Message struct {
-	URL      string `bson:"url"`
-	Title    string `bson:"title"`
-	Links    []Link `bson:"links,omitempty"`
-	Username string `bson:"username"`
+	URL    string `bson:"url"`
+	Title  string `bson:"title"`
+	Links  []Link `bson:"links,omitempty"`
+	UserID int    `bson:"user_id"`
 }
 
 type Store interface {
 	Save(ctx context.Context, m *Message) error
 	FindByURL(ctx context.Context, url string) (*Message, error)
-	FindByUsername(ctx context.Context, username string) ([]Message, error)
+	FindByUser(ctx context.Context, userID int) ([]Message, error)
 }
 
 func NewService(ctx context.Context, s Store) Service {
@@ -73,7 +74,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 		log.Println("find url in store err:", err)
 	}
 	if msg != nil {
-		return nil, errors.Errorf("@%s has already share it", msg.Username)
+		return nil, ErrHasAlreadyShare
 	}
 	title, err := p.GetTitle(link)
 	if err != nil {
@@ -103,8 +104,8 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 	return m, nil
 }
 
-func (s *service) GetList(ctx context.Context, username string) (string, error) {
-	m, err := s.store.FindByUsername(ctx, username)
+func (s *service) GetList(ctx context.Context, userID int) (string, error) {
+	m, err := s.store.FindByUser(ctx, userID)
 	if err != nil {
 		return "", errors.Wrap(err, "find by username in store")
 	}
