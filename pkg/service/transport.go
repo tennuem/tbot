@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/pkg/errors"
 	"github.com/tennuem/telegram"
 )
 
@@ -27,6 +28,9 @@ func NewTelegramHandler(svc Service) telegram.Handler {
 			URL:      r.Message.Text,
 			Username: r.Message.From.UserName,
 		})
+		if errors.Is(err, ErrLinkNotFound) {
+			return
+		}
 		if err != nil {
 			w.Text = err.Error()
 			return
