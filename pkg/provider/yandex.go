@@ -9,13 +9,18 @@ import (
 	"github.com/ndrewnee/go-yamusic/yamusic"
 )
 
+type YandexClient interface {
+	GetTrack(id int) (string, error)
+	Search(title string) (string, error)
+}
+
 func NewYandexProvider(ctx context.Context) Provider {
-	return &yandexProvider{client: yamusic.NewClient()}
+	return &yandexProvider{client: &yandexClient{client: yamusic.NewClient()}}
 }
 
 type yandexProvider struct {
 	host   string
-	client *yamusic.Client
+	client YandexClient
 }
 
 func (p *yandexProvider) Name() string {
@@ -27,14 +32,25 @@ func (p *yandexProvider) Host() string {
 }
 
 func (p *yandexProvider) GetTitle(url string) (string, error) {
-	fmt.Println(url)
 	substr := "track/"
 	sid := url[strings.Index(url, substr)+len(substr):]
 	id, err := strconv.Atoi(sid)
 	if err != nil {
 		return "", err
 	}
-	tracks, _, err := p.client.Tracks().Get(context.Background(), id)
+	return p.client.GetTrack(id)
+}
+
+func (p *yandexProvider) GetURL(title string) (string, error) {
+	return p.client.Search(title)
+}
+
+type yandexClient struct {
+	client *yamusic.Client
+}
+
+func (c *yandexClient) GetTrack(id int) (string, error) {
+	tracks, _, err := c.client.Tracks().Get(context.Background(), id)
 	if err != nil {
 		return "", err
 	}
@@ -51,9 +67,8 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 	return fmt.Sprintf("%s — %s", track, author), nil
 }
 
-func (p *yandexProvider) GetURL(title string) (string, error) {
-	fmt.Println(title)
-	resp, _, err := p.client.Search().Tracks(context.Background(), title, nil)
+func (c *yandexClient) Search(title string) (string, error) {
+	resp, _, err := c.client.Search().Tracks(context.Background(), title, nil)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +78,6 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 	if len(resp.Result.Tracks.Results[0].Albums) == 0 {
 		return "", fmt.Errorf("albums is empty")
 	}
-
 	trackID := resp.Result.Tracks.Results[0].ID
 	albumID := resp.Result.Tracks.Results[0].Albums[0].ID
 

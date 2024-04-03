@@ -3,7 +3,6 @@ package provider
 import (
 	"testing"
 
-	"github.com/ndrewnee/go-yamusic/yamusic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +18,7 @@ func TestYandexProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := yandexProvider{
-		client: yamusic.NewClient(),
+		client: &yandexClientMock{},
 	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
@@ -39,11 +38,22 @@ func TestYandexProviderGetURL(t *testing.T) {
 		},
 	}
 	p := yandexProvider{
-		client: yamusic.NewClient(),
+		client: &yandexClientMock{},
 	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
 		require.NoError(t, err)
 		assert.Equal(t, c.out, res)
 	}
+}
+
+type yandexClientMock struct {
+}
+
+func (c *yandexClientMock) GetTrack(id int) (string, error) {
+	return "The Hard Interchange — Champs", nil
+}
+
+func (c *yandexClientMock) Search(title string) (string, error) {
+	return "https://music.yandex.ru/album/8834580/track/58314507", nil
 }
