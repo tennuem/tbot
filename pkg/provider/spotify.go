@@ -25,6 +25,13 @@ func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
 		TokenURL:     spotify.Endpoint.TokenURL,
 	}
 	p := &spotifyProvider{logger: logger}
+	token, err := cfg.Token(context.Background())
+	if err != nil {
+		level.Error(logger).Log("get token", err)
+	}
+	c := spotifyAPI.Authenticator{}.NewClient(token)
+	p.client = &c
+
 	go func() {
 		for range time.NewTicker(time.Second * 1).C {
 			select {
@@ -58,6 +65,10 @@ type spotifyProvider struct {
 	token  *oauth2.Token
 	client spotifyClient
 	logger log.Logger
+}
+
+func (p *spotifyProvider) Name() string {
+	return "spotify"
 }
 
 func (p *spotifyProvider) Host() string {

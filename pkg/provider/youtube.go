@@ -24,6 +24,10 @@ type youtubeProvider struct {
 	logger log.Logger
 }
 
+func (p *youtubeProvider) Name() string {
+	return "youtube"
+}
+
 func (p *youtubeProvider) Host() string {
 	return "music.youtube.com"
 }

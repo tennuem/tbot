@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-kit/kit/log"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/internal/bot"
 )
@@ -45,7 +46,15 @@ func encodeFindLinksResponse(ctx context.Context, w bot.ResponseWriter, response
 		return nil
 	}
 	resp := response.(FindLinksResponse)
-	w.Write([]byte(strings.Join(resp.Links, "\n\n")))
+	w.Write([]byte(resp.Title))
+
+	var buttons []tgbotapi.InlineKeyboardButton
+	for _, v := range resp.Links {
+		buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(v.Provider, v.URL))
+	}
+	w.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(buttons...),
+	)
 	return nil
 }
 

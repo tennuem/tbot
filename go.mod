@@ -8,6 +8,7 @@ require (
 	github.com/go-kit/kit v0.12.0
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/ndrewnee/go-yamusic v1.1.0
 	github.com/oklog/run v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5

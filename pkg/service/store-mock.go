@@ -13,9 +13,9 @@ func NewStoreMock() Store {
 			"https://music.yandex.com/album/8508157/track/57016085": &Message{
 				URL:   "https://music.yandex.com/album/8508157/track/57016085",
 				Title: "Babushka Boi — A$AP Rocky",
-				Links: []string{
-					"https://music.youtube.com/watch?v=KViOTZ62zBg",
-					"https://music.apple.com/us/album/babushka-boi-single/1477644647",
+				Links: []Link{
+					{Provider: "youtube", URL: "https://music.youtube.com/watch?v=KViOTZ62zBg"},
+					{Provider: "apple", URL: "https://music.apple.com/us/album/babushka-boi-single/1477644647"},
 				},
 			},
 		},

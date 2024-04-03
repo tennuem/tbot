@@ -24,6 +24,10 @@ type appleProvider struct {
 	logger log.Logger
 }
 
+func (p *appleProvider) Name() string {
+	return "apple"
+}
+
 func (p *appleProvider) Host() string {
 	return "music.apple.com"
 }

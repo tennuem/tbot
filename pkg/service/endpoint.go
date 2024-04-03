@@ -13,7 +13,11 @@ func makeFindLinksEndpoint(s Service) endpoint.Endpoint {
 		if err != nil {
 			return FindLinksResponse{Err: err}, nil
 		}
-		return FindLinksResponse{resp.Links, err}, nil
+		return FindLinksResponse{
+			resp.Title,
+			resp.Links,
+			err,
+		}, nil
 	}
 }
 
@@ -34,7 +38,8 @@ type FindLinksRequest struct {
 }
 
 type FindLinksResponse struct {
-	Links []string
+	Title string
+	Links []Link
 	Err   error
 }
 

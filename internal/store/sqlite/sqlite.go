@@ -34,7 +34,7 @@ func (s *sqLiteStore) Save(ctx context.Context, m *service.Message) error {
 	b := sq.Insert("links").Columns("url", "title", "username")
 	b = b.Values(m.URL, m.Title, m.Username)
 	for _, l := range m.Links {
-		b = b.Values(l, m.Title, m.Username)
+		b = b.Values(l.URL, m.Title, m.Username)
 	}
 	query, args, err := b.PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {

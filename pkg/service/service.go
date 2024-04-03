@@ -27,11 +27,16 @@ type Service interface {
 	AddProvider(p provider.Provider)
 }
 
+type Link struct {
+	URL      string
+	Provider string
+}
+
 type Message struct {
-	URL      string   `bson:"url"`
-	Title    string   `bson:"title"`
-	Links    []string `bson:"links,omitempty"`
-	Username string   `bson:"username"`
+	URL      string `bson:"url"`
+	Title    string `bson:"title"`
+	Links    []Link `bson:"links,omitempty"`
+	Username string `bson:"username"`
 }
 
 type Store interface {
@@ -82,7 +87,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 		return nil, errors.Wrap(err, "failed to get title")
 	}
 	m.Title = title
-	var res []string
+	var res []Link
 	for k, v := range s.providers {
 		if v == p {
 			continue
@@ -92,9 +97,10 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 			level.Error(s.logger).Log(fmt.Sprintf("failed to get url from: %v, by title %v", k, err.Error()))
 			continue
 		}
-		if u != "" {
-			res = append(res, u)
+		if len(u) == 0 {
+			continue
 		}
+		res = append(res, Link{Provider: v.Name(), URL: u})
 	}
 	m.URL = link
 	m.Links = res
