@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/ndrewnee/go-yamusic v1.1.0
 	github.com/oklog/run v1.1.0
 	github.com/pkg/errors v0.9.1
