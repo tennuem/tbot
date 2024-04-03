@@ -38,10 +38,10 @@ func (p *yandexProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 	if len(tracks.Result) == 0 {
-		return "", ErrTitleNotFound
+		return "", fmt.Errorf("result is empty")
 	}
 	if len(tracks.Result[0].Artists) == 0 {
-		return "", ErrTitleNotFound
+		return "", fmt.Errorf("artists is empty")
 	}
 
 	track := tracks.Result[0].Title
