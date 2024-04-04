@@ -19,7 +19,7 @@ type appleProvider struct {
 }
 
 func (p *appleProvider) Name() string {
-	return "apple"
+	return "🍏 apple"
 }
 
 func (p *appleProvider) Host() string {

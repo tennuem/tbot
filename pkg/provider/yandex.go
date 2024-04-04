@@ -24,7 +24,7 @@ type yandexProvider struct {
 }
 
 func (p *yandexProvider) Name() string {
-	return "yandex"
+	return "🎧 yandex"
 }
 
 func (p *yandexProvider) Host() string {

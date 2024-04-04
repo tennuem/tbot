@@ -63,7 +63,7 @@ type spotifyProvider struct {
 }
 
 func (p *spotifyProvider) Name() string {
-	return "spotify"
+	return "🎵 spotify"
 }
 
 func (p *spotifyProvider) Host() string {
