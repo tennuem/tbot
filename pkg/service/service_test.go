@@ -23,8 +23,7 @@ func TestFindLinks(t *testing.T) {
 			},
 		},
 	}
-	svc := NewService(context.Background(), NewStoreMock())
-	svc.AddProvider(provider.NewMockProvider())
+	svc := NewService(NewStoreMock(), provider.NewMockProvider())
 	for k, c := range testData {
 		res, err := svc.FindLinks(context.Background(), c.in)
 		require.NoError(t, err)

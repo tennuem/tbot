@@ -41,7 +41,7 @@ func NewTelegramHandler(svc Service) telegram.Handler {
 		}
 		var buttons []tgbotapi.InlineKeyboardButton
 		for _, v := range resp.Links {
-			buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(v.Provider, v.URL))
+			buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(v.Name, v.URL))
 		}
 		w.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(buttons...),

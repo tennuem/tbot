@@ -41,11 +41,13 @@ func (s *server) Run(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to init sqLite store")
 	}
-	svc := service.NewService(ctx, ms)
-	svc.AddProvider(provider.NewYandexProvider(ctx))
-	svc.AddProvider(provider.NewYoutubeProvider(ctx))
-	svc.AddProvider(provider.NewAppleProvider(ctx))
-	svc.AddProvider(provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret))
+	svc := service.NewService(
+		ms,
+		provider.NewYandexProvider(ctx),
+		provider.NewYoutubeProvider(ctx),
+		provider.NewAppleProvider(ctx),
+		provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret),
+	)
 	svc = service.NewLoggingService(ctx, svc)
 
 	if err := s.bot(cfg.Telegram.Token, service.NewTelegramHandler(svc)); err != nil {

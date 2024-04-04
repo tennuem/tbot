@@ -22,12 +22,11 @@ var (
 type Service interface {
 	FindLinks(ctx context.Context, m *Message) (*Message, error)
 	GetList(ctx context.Context, userID int) (string, error)
-	AddProvider(p provider.Provider)
 }
 
 type Link struct {
-	URL      string
-	Provider string
+	URL  string
+	Name string
 }
 
 type Message struct {
@@ -43,13 +42,13 @@ type Store interface {
 	FindByUser(ctx context.Context, userID int) ([]Message, error)
 }
 
-func NewService(ctx context.Context, s Store) Service {
-	return &service{store: s}
+func NewService(s Store, providers ...provider.Provider) Service {
+	return &service{store: s, providers: providers}
 }
 
 type service struct {
 	store     Store
-	providers map[string]provider.Provider
+	providers []provider.Provider
 }
 
 func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
@@ -94,7 +93,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 		if len(u) == 0 {
 			continue
 		}
-		res = append(res, Link{Provider: v.Name(), URL: u})
+		res = append(res, Link{Name: v.Name(), URL: u})
 	}
 	m.URL = link
 	m.Links = res
@@ -122,19 +121,13 @@ func (s *service) GetList(ctx context.Context, userID int) (string, error) {
 	return b.String(), nil
 }
 
-func (s *service) AddProvider(p provider.Provider) {
-	if s.providers == nil {
-		s.providers = make(map[string]provider.Provider)
-	}
-	s.providers[p.Host()] = p
-}
-
 func (s *service) findProvider(host string) (provider.Provider, error) {
-	v, ok := s.providers[host]
-	if !ok {
-		return nil, ErrProviderNotFound
+	for _, p := range s.providers {
+		if p.Host() == host {
+			return p, nil
+		}
 	}
-	return v, nil
+	return nil, ErrProviderNotFound
 }
 
 func parseURL(s string) (*url.URL, error) {
