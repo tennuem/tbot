@@ -81,13 +81,13 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 	}
 	m.Title = title
 	var res []Link
-	for k, v := range s.providers {
+	for _, v := range s.providers {
 		if v == p {
 			continue
 		}
 		u, err := v.GetURL(title)
 		if err != nil {
-			log.Printf("failed to get url for provider: %s, by title: %s err: %v\n", k, title, err.Error())
+			log.Printf("failed to get url for provider: %s, by title: %s err: %v\n", v.Name(), title, err.Error())
 			continue
 		}
 		if len(u) == 0 {
