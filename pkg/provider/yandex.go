@@ -3,8 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/ndrewnee/go-yamusic/yamusic"
 )
@@ -31,13 +32,23 @@ func (p *yandexProvider) Host() string {
 	return "music.yandex.com"
 }
 
-func (p *yandexProvider) GetTitle(url string) (string, error) {
-	substr := "track/"
-	sid := url[strings.Index(url, substr)+len(substr):]
-	id, err := strconv.Atoi(sid)
+func (p *yandexProvider) GetTitle(rawURL string) (string, error) {
+	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
 	}
+
+	trackIDRegex := regexp.MustCompile(`album/\d+/track/(\d+)`)
+	matches := trackIDRegex.FindStringSubmatch(parsedURL.Path)
+	if matches == nil || len(matches) < 2 {
+		return "", fmt.Errorf("не удалось найти идентификатор трека в URL")
+	}
+
+	id, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return "", fmt.Errorf("не удалось преобразовать ид трека '%s' в число: %w", matches[1], err)
+	}
+
 	return p.client.GetTrack(id)
 }
 

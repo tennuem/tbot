@@ -13,7 +13,7 @@ func TestYandexProviderGetTitle(t *testing.T) {
 		out string
 	}{
 		{
-			"https://music.yandex.ru/album/8834580/track/58314507",
+			"https://music.yandex.ru/album/8834580/track/58314507?utm_medium=copy_link",
 			"The Hard Interchange — Champs",
 		},
 	}
@@ -47,8 +47,7 @@ func TestYandexProviderGetURL(t *testing.T) {
 	}
 }
 
-type yandexClientMock struct {
-}
+type yandexClientMock struct{}
 
 func (c *yandexClientMock) GetTrack(id int) (string, error) {
 	return "The Hard Interchange — Champs", nil
