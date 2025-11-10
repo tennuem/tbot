@@ -24,7 +24,8 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := youtubeProvider{
-		host: ts.URL,
+		host:   ts.URL,
+		client: ts.Client(),
 	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
@@ -35,7 +36,7 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 
 func TestYoutubeProviderGetURL(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><div id="search"><div class="g"><a href="https://www.youtube.com/watch?v=ikFFVfObwss&feature=share"></a></div></div></html>`))
+		w.Write([]byte(`<html><script>var ytInitialData = {"contents":{"sectionListRenderer":{"contents":[{"itemSectionRenderer":{"contents":[{"videoRenderer":{"videoId":"ikFFVfObwss"}}]}}]}}};</script></html>`))
 	}))
 	defer ts.Close()
 	testData := []struct {
@@ -44,11 +45,12 @@ func TestYoutubeProviderGetURL(t *testing.T) {
 	}{
 		{
 			"Highway to Hell — AC/DC",
-			"https://music.youtube.com/watch?v=ikFFVfObwss&feature=share",
+			"https://music.youtube.com/watch?v=ikFFVfObwss",
 		},
 	}
 	p := youtubeProvider{
-		host: ts.URL,
+		host:   ts.URL,
+		client: ts.Client(),
 	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)

@@ -3,19 +3,29 @@ package provider
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"regexp"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
+var videoIDRegexp = regexp.MustCompile(`"videoId":"([^"]+)"`)
+
 func NewYoutubeProvider(ctx context.Context) Provider {
-	return &youtubeProvider{host: "https://www.google.ru"}
+	return &youtubeProvider{
+		host: "https://www.youtube.com",
+		client: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+	}
 }
 
 type youtubeProvider struct {
-	host string //"https://music.youtube.com"
+	host   string //"https://music.youtube.com"
+	client *http.Client
 }
 
 func (p *youtubeProvider) Name() string {
@@ -32,8 +42,7 @@ func (p *youtubeProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 	req.Header.Set("User-Agent", "Googlebot/2.1 (+http://www.googlebot.com/bot.html)")
-	client := new(http.Client)
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -58,32 +67,35 @@ func (p *youtubeProvider) GetTitle(url string) (string, error) {
 }
 
 func (p *youtubeProvider) GetURL(title string) (string, error) {
-	u, err := url.Parse(fmt.Sprintf("%s/search", p.host))
+	u, err := url.Parse(fmt.Sprintf("%s/results", p.host))
 	if err != nil {
 		return "", err
 	}
 	q := u.Query()
-	q.Set("q", fmt.Sprintf("%s %s", title, "youtube"))
+	q.Set("search_query", title)
 	u.RawQuery = q.Encode()
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36")
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
-	href, ok := doc.Find("#search .g a").First().Attr("href")
-	if !ok {
+	matches := videoIDRegexp.FindSubmatch(body)
+	if len(matches) < 2 {
 		return "", ErrURLNotFound
 	}
-	link := strings.Replace(href, "www.", "music.", -1)
+	videoID := string(matches[1])
+	if videoID == "" {
+		return "", ErrURLNotFound
+	}
+	link := fmt.Sprintf("https://music.youtube.com/watch?v=%s", videoID)
 	return link, nil
 }

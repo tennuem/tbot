@@ -24,7 +24,8 @@ func TestAppleProviderGetTitle(t *testing.T) {
 		},
 	}
 	p := appleProvider{
-		host: ts.URL,
+		host:   ts.URL,
+		client: ts.Client(),
 	}
 	for _, c := range testData {
 		res, err := p.GetTitle(c.in)
@@ -35,7 +36,7 @@ func TestAppleProviderGetTitle(t *testing.T) {
 
 func TestAppleProviderGetURL(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><div id="search"><div class="g"><a href="https://music.apple.com/ru/album/highway-to-hell/574043989?i=574044008"></a></div></div></html>`))
+		w.Write([]byte(`{"results":[{"trackViewUrl":"https://music.apple.com/ru/album/highway-to-hell/574043989?i=574044008"}]}`))
 	}))
 	defer ts.Close()
 	testData := []struct {
@@ -48,7 +49,8 @@ func TestAppleProviderGetURL(t *testing.T) {
 		},
 	}
 	p := appleProvider{
-		host: ts.URL,
+		host:   ts.URL,
+		client: ts.Client(),
 	}
 	for _, c := range testData {
 		res, err := p.GetURL(c.in)
