@@ -3,9 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/ndrewnee/go-yamusic/yamusic"
 )
@@ -15,8 +17,43 @@ type YandexClient interface {
 	Search(title string) (string, error)
 }
 
-func NewYandexProvider(ctx context.Context) Provider {
-	return &yandexProvider{client: &yandexClient{client: yamusic.NewClient()}}
+func NewYandexProvider(ctx context.Context, proxyURL string) (Provider, error) {
+	httpClient, err := newYandexHTTPClient(proxyURL)
+	if err != nil {
+		return nil, err
+	}
+	return &yandexProvider{client: &yandexClient{
+		ctx:    ctx,
+		client: yamusic.NewClient(yamusic.HTTPClient(httpClient)),
+	}}, nil
+}
+
+func newYandexHTTPClient(rawProxyURL string) (*http.Client, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if rawProxyURL != "" {
+		proxyURL, err := url.Parse(rawProxyURL)
+		if err != nil {
+			// Parse errors may contain credentials from the proxy URL.
+			return nil, fmt.Errorf("invalid yandex.proxy_url: cannot parse URL")
+		}
+		if proxyURL.Scheme != "http" && proxyURL.Scheme != "https" {
+			return nil, fmt.Errorf("invalid yandex.proxy_url: scheme must be http or https")
+		}
+		if proxyURL.Hostname() == "" || proxyURL.Opaque != "" {
+			return nil, fmt.Errorf("invalid yandex.proxy_url: host is required")
+		}
+		if proxyURL.Path != "" && proxyURL.Path != "/" || proxyURL.RawQuery != "" || proxyURL.ForceQuery || proxyURL.Fragment != "" {
+			return nil, fmt.Errorf("invalid yandex.proxy_url: path, query and fragment are not supported")
+		}
+		if port := proxyURL.Port(); port != "" {
+			n, err := strconv.Atoi(port)
+			if err != nil || n < 1 || n > 65535 {
+				return nil, fmt.Errorf("invalid yandex.proxy_url: port must be between 1 and 65535")
+			}
+		}
+		transport.Proxy = http.ProxyURL(proxyURL)
+	}
+	return &http.Client{Transport: transport, Timeout: 10 * time.Second}, nil
 }
 
 type yandexProvider struct {
@@ -25,7 +62,7 @@ type yandexProvider struct {
 }
 
 func (p *yandexProvider) Name() string {
-	return "🎧 yandex"
+	return "Яндекс Музыка"
 }
 
 func (p *yandexProvider) Host() string {
@@ -40,7 +77,7 @@ func (p *yandexProvider) GetTitle(rawURL string) (string, error) {
 
 	trackIDRegex := regexp.MustCompile(`album/\d+/track/(\d+)`)
 	matches := trackIDRegex.FindStringSubmatch(parsedURL.Path)
-	if matches == nil || len(matches) < 2 {
+	if len(matches) < 2 {
 		return "", fmt.Errorf("не удалось найти идентификатор трека в URL")
 	}
 
@@ -57,11 +94,12 @@ func (p *yandexProvider) GetURL(title string) (string, error) {
 }
 
 type yandexClient struct {
+	ctx    context.Context
 	client *yamusic.Client
 }
 
 func (c *yandexClient) GetTrack(id int) (string, error) {
-	tracks, _, err := c.client.Tracks().Get(context.Background(), id)
+	tracks, _, err := c.client.Tracks().Get(c.ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +117,7 @@ func (c *yandexClient) GetTrack(id int) (string, error) {
 }
 
 func (c *yandexClient) Search(title string) (string, error) {
-	resp, _, err := c.client.Search().Tracks(context.Background(), title, nil)
+	resp, _, err := c.client.Search().Tracks(c.ctx, title, nil)
 	if err != nil {
 		return "", err
 	}

@@ -1,4 +1,3 @@
-version: "3.5"
 services:
 
   mongodb:
@@ -15,12 +14,17 @@ services:
     build: .
     environment:
       TBOT_TELEGRAM_TOKEN: token
+      TBOT_TELEGRAM_EMOJI_SET: "${TBOT_TELEGRAM_EMOJI_SET:-}"
       TBOT_SPOTIFY_CLIENT_ID: cid
       TBOT_SPOTIFY_CLIENT_SECRET: csecret
+      TBOT_YANDEX_PROXY_URL: "${TBOT_YANDEX_PROXY_URL:-}"
       TBOT_MONGODB_ADDR: mongodb://root:root@mongodb:27017/?ssl=false
+      TBOT_SQLITE_DATA_SOURCE: /data/tbot.db
       TBOT_LOGGER_LEVEL: "debug"
+    volumes:
+      - ./db:/data
     depends_on:
       - mongodb
-      
+
 volumes:
   data-volume:

@@ -28,7 +28,7 @@ type appleProvider struct {
 }
 
 func (p *appleProvider) Name() string {
-	return "🍏 apple"
+	return "Apple Music"
 }
 
 func (p *appleProvider) Host() string {

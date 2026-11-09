@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ ! -x "$repo_dir/bin/openspec" ]; then
+  echo 'OpenSpec is not installed. Run make openspec-install from the repository root.' >&2
+  exit 1
+fi
+
+cd "$repo_dir"
+exec env DO_NOT_TRACK=1 OPENSPEC_NO_UPDATE_CHECK=1 \
+  XDG_CONFIG_HOME="$repo_dir/.cache/openspec/config" \
+  XDG_DATA_HOME="$repo_dir/.cache/openspec/data" \
+  "$repo_dir/bin/openspec" "$@"

@@ -1,0 +1,13 @@
+# Dedicated Squid 5/6/7 instance. Replace the example source IP before use.
+http_port 0.0.0.0:3128
+visible_hostname tbot-yandex-proxy
+
+acl tbot_server src 203.0.113.10/32
+acl yandex_api dstdomain -n api.music.yandex.net
+acl tls_tunnel method CONNECT
+acl tls_port port 443
+
+http_access allow tbot_server tls_tunnel tls_port yandex_api
+http_access deny all
+cache deny all
+connect_timeout 5 seconds
