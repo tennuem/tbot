@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/oklog/run"
@@ -29,14 +30,18 @@ type server struct {
 }
 
 func (s *server) Run(ctx context.Context) error {
-	s.signal()
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	s.group.Add(func() error { <-ctx.Done(); return nil }, func(error) { stop() })
 	cfg := configs.NewConfig()
 	if err := cfg.Read(); err != nil {
 		return errors.Wrap(err, "failed to init config")
 	}
-	if err := cfg.Print(); err != nil {
-		return errors.Wrap(err, "failed to print config")
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(cfg.Logger.Level)); err != nil {
+		return errors.Wrap(err, "invalid logger level")
 	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 	yandex, err := provider.NewYandexProvider(ctx, cfg.Yandex.ProxyURL)
 	if err != nil {
 		return errors.Wrap(err, "failed to init Yandex Music provider")
@@ -46,15 +51,23 @@ func (s *server) Run(ctx context.Context) error {
 		return errors.Wrap(err, "failed to init sqLite store")
 	}
 	svc := service.NewService(
+		ctx,
 		ms,
 		yandex,
 		provider.NewYoutubeProvider(ctx),
 		provider.NewAppleProvider(ctx),
 		provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret),
 	)
+	defer svc.Close()
 	svc = service.NewLoggingService(ctx, svc)
 
-	if err := s.bot(cfg.Telegram.Token, service.NewTelegramHandler(svc)); err != nil {
+	icons, err := service.LoadServiceIcons(ctx, cfg.Telegram.Token, cfg.Telegram.EmojiSet)
+	if err != nil {
+		slog.Warn("Не удалось загрузить логотипы сервисов, используются текстовые ссылки", "error", err)
+	} else if cfg.Telegram.EmojiSet != "" {
+		slog.Info("Логотипы сервисов загружены", "emoji_set", cfg.Telegram.EmojiSet, "icons", len(icons))
+	}
+	if err := s.bot(cfg.Telegram.Token, service.NewTelegramHandler(svc, icons)); err != nil {
 		return errors.Wrap(err, "failed to init telegram bot")
 	}
 	return s.group.Run()
@@ -63,24 +76,22 @@ func (s *server) Run(ctx context.Context) error {
 func (s *server) bot(token string, handler telegram.Handler) error {
 	svr, close, err := telegram.NewServer(token)
 	if err != nil {
-		return errors.Wrap(err, "start telegram server")
+		return errors.Errorf("start telegram server: %s", telegramErrorText(err, token))
 	}
 	s.group.Add(func() error {
-		log.Println("start telegram server")
+		slog.Info("Telegram-бот запущен")
 		return svr.Serve(handler)
 	}, func(error) {
-		log.Println("stop telegram server")
+		slog.Info("Telegram-бот остановлен")
 		close()
 	})
 	return nil
 }
 
-func (s *server) signal() {
-	c := make(chan os.Signal, 1)
-	s.group.Add(func() error {
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		return errors.Errorf("received signal %s", <-c)
-	}, func(error) {
-		close(c)
-	})
+func telegramErrorText(err error, token string) string {
+	message := err.Error()
+	if token != "" {
+		message = strings.ReplaceAll(message, token, "[REDACTED]")
+	}
+	return message
 }

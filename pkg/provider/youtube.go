@@ -29,7 +29,7 @@ type youtubeProvider struct {
 }
 
 func (p *youtubeProvider) Name() string {
-	return "▶️ youtube"
+	return "YouTube Music"
 }
 
 func (p *youtubeProvider) Host() string {

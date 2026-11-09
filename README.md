@@ -5,6 +5,7 @@
 | Command line          | Environment                | Default | Description     |
 | --------------------- | :------------------------- | :------ | :-------------- |
 | telegram.token        | TBOT_TELEGRAM_TOKEN        | string  | telegram token  |
+| telegram.emoji_set    | TBOT_TELEGRAM_EMOJI_SET    | empty   | custom emoji set for service logos; empty disables logos |
 | spotify.client_id     | TBOT_SPOTIFY_CLIENT_ID     | string  | telegram token  |
 | spotify.client_secret | TBOT_SPOTIFY_CLIENT_SECRET | string  | telegram token  |
 | yandex.proxy_url      | TBOT_YANDEX_PROXY_URL      | empty   | HTTP(S) proxy URL for Yandex Music only |
@@ -62,3 +63,66 @@ The Docker build keeps CGO enabled and uses Go 1.27.3 on Alpine 3.24, with Alpin
 3.24.4 in the runtime image. Module downloads and compilation use BuildKit caches;
 the final image contains CA certificates and the stripped binary. `.dockerignore`
 excludes local databases, credentials, Git metadata, and build artifacts.
+
+## Link cache and Telegram replies
+
+Incoming and discovered links are normalized before lookup and storage. Sharing
+parameters (`utm_*`, `ref_id`, `si`, advertising click IDs) and fragments are removed;
+track identifiers such as YouTube's `v` and Apple Music's `i` are retained.
+Yandex regional domains, Spotify locale prefixes, and YouTube short links are
+normalized to the provider's canonical host.
+
+SQLite stores the complete set of provider links for each track and indexes aliases
+by provider and URL. Sending a discovered link from another service therefore finds
+the same cached answer. A cache hit returns immediately and schedules a background
+refresh, with one refresh per track and at most four concurrent refreshes. If all
+slots are occupied, the cached answer is still returned and another request can retry
+the refresh. Temporary provider failures retain previously found links; a definitive
+not-found response removes that provider's link from the next answer.
+
+Replies use Telegram's standard HTML formatting with clickable service names,
+without an inline keyboard or web page previews. Cached replies can show the first
+sender and send time (Moscow time), only in the original chat. Sender information
+from another chat is never included in the reply.
+
+### Service logos
+
+The [TbotMusicServices emoji set](https://t.me/addemoji/TbotMusicServices) contains
+the four service logos. To enable it in your server's Compose file, add this to the
+bot's existing `environment` section (no env file is required):
+
+```yaml
+TBOT_TELEGRAM_EMOJI_SET: TbotMusicServices
+```
+
+With this repository's Compose file, you can instead run:
+
+```fish
+env TBOT_TELEGRAM_EMOJI_SET=TbotMusicServices docker compose up -d --build app
+```
+
+The setting accepts the set's short name, not its full URL. At startup, the bot
+uses its existing Telegram token to read `getStickerSet` and matches icons by their
+assigned emoji: Spotify 🎧, Yandex Music 🎵, Apple Music 🎶, YouTube Music ▶️.
+The order of the icons in the set does not matter. Logos appear beside the HTML
+links using `tg-emoji`; the existing Telegram library needs no upgrade.
+
+Loading has a 10-second timeout. If loading fails, the bot logs a warning and uses
+text links; an absent individual logo also falls back to a text link. An empty
+setting disables logos. The set is read once per process start; changing Compose
+environment values requires recreating the container. For sending custom emoji in
+private chats and groups, the bot's owner must have Telegram Premium or the bot
+must have an additional username purchased on Fragment; see
+[Telegram's requirements](https://core.telegram.org/bots/api#html-style).
+
+On first startup, existing SQLite rows are imported into new cache tables in a
+transaction. The old `links` table is retained. The previous schema did not store
+complete link sets or send dates: imported records are rebuilt on their next use,
+and unknown historical dates are left unknown. Keep the SQLite database on a
+persistent Docker volume and back it up before updating the application.
+
+Logs distinguish `cache=miss`, `cache=hit`, and `cache=error`, and report background
+refreshes and provider failures separately. Normal cache misses and ordinary chat
+messages are not logged as application errors. Startup no longer prints credentials.
+Spotify uses a synchronized OAuth token source instead of a token-refresh goroutine,
+so concurrent foreground searches and background refreshes share tokens safely.

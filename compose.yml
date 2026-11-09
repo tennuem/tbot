@@ -14,6 +14,7 @@ services:
     build: .
     environment:
       TBOT_TELEGRAM_TOKEN: token
+      TBOT_TELEGRAM_EMOJI_SET: "${TBOT_TELEGRAM_EMOJI_SET:-}"
       TBOT_SPOTIFY_CLIENT_ID: cid
       TBOT_SPOTIFY_CLIENT_SECRET: csecret
       TBOT_YANDEX_PROXY_URL: "${TBOT_YANDEX_PROXY_URL:-}"

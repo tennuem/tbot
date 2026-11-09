@@ -62,7 +62,7 @@ type yandexProvider struct {
 }
 
 func (p *yandexProvider) Name() string {
-	return "🎧 yandex"
+	return "Яндекс Музыка"
 }
 
 func (p *yandexProvider) Host() string {

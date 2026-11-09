@@ -42,9 +42,42 @@ func TestYandexProxyConfig(t *testing.T) {
 func TestConfigJSONOmitsProxyCredentials(t *testing.T) {
 	cfg := NewConfig()
 	cfg.Yandex.ProxyURL = "http://proxy-user:proxy-secret@ru-proxy:3128"
+	cfg.Telegram.Token = "telegram-secret"
+	cfg.Spotify.ClientSecret = "spotify-secret"
+	cfg.MongoDB.Addr = "mongodb://mongo-user:mongo-secret@localhost"
 	data, err := json.Marshal(cfg)
 	require.NoError(t, err)
 	require.NotContains(t, string(data), cfg.Yandex.ProxyURL)
 	require.NotContains(t, string(data), "proxy-user")
 	require.NotContains(t, string(data), "proxy-secret")
+	for _, secret := range []string{"telegram-secret", "spotify-secret", "mongo-secret"} {
+		require.NotContains(t, string(data), secret)
+	}
+}
+
+func TestTelegramEmojiSetConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name, env, want string
+		args            []string
+	}{
+		{name: "disabled by default"},
+		{name: "environment", env: "TbotMusicServices", want: "TbotMusicServices"},
+		{name: "flag", args: []string{"--telegram.emoji_set=TbotMusicServices"}, want: "TbotMusicServices"},
+		{name: "explicitly disabled", env: "TbotMusicServices", args: []string{"--telegram.emoji_set="}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			oldFlags, oldArgs := pflag.CommandLine, os.Args
+			viper.Reset()
+			pflag.CommandLine = pflag.NewFlagSet("test", pflag.ContinueOnError)
+			os.Args = append([]string{"tbot"}, tc.args...)
+			t.Cleanup(func() {
+				pflag.CommandLine, os.Args = oldFlags, oldArgs
+				viper.Reset()
+			})
+			t.Setenv("TBOT_TELEGRAM_EMOJI_SET", tc.env)
+			cfg := NewConfig()
+			require.NoError(t, cfg.Read())
+			require.Equal(t, tc.want, cfg.Telegram.EmojiSet)
+		})
+	}
 }

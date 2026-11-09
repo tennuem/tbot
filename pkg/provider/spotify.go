@@ -3,7 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,36 +21,16 @@ func NewSpotifyProvider(ctx context.Context, cid, csecret string) Provider {
 		ClientSecret: csecret,
 		TokenURL:     spotify.Endpoint.TokenURL,
 	}
-	p := &spotifyProvider{}
-	token, err := cfg.Token(context.Background())
-	if err != nil {
-		log.Fatalln("get token", err)
-	}
-	c := spotifyAPI.Authenticator{}.NewClient(token)
-	p.client = &c
+	c := spotifyAPI.NewClient(newSpotifyHTTPClient(ctx, cfg))
+	return &spotifyProvider{client: &c}
+}
 
-	go func() {
-		for range time.NewTicker(time.Second * 1).C {
-			select {
-			case <-ctx.Done():
-				log.Println("err", ctx.Err())
-				return
-			default:
-				if p.token.Valid() {
-					continue
-				}
-				token, err := cfg.Token(context.Background())
-				if err != nil {
-					log.Println("get token", err)
-					continue
-				}
-				p.token = token
-				c := spotifyAPI.Authenticator{}.NewClient(token)
-				p.client = &c
-			}
-		}
-	}()
-	return p
+func newSpotifyHTTPClient(ctx context.Context, cfg clientcredentials.Config) *http.Client {
+	// oauth2's token source refreshes lazily and synchronizes concurrent callers.
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: 10 * time.Second})
+	httpClient := cfg.Client(ctx)
+	httpClient.Timeout = 10 * time.Second
+	return httpClient
 }
 
 type spotifyClient interface {
@@ -58,12 +39,11 @@ type spotifyClient interface {
 }
 
 type spotifyProvider struct {
-	token  *oauth2.Token
 	client spotifyClient
 }
 
 func (p *spotifyProvider) Name() string {
-	return "🎵 spotify"
+	return "Spotify"
 }
 
 func (p *spotifyProvider) Host() string {
@@ -71,8 +51,15 @@ func (p *spotifyProvider) Host() string {
 }
 
 func (p *spotifyProvider) GetTitle(url string) (string, error) {
-	substr := "track/"
-	id := url[strings.Index(url, substr)+len(substr):]
+	u, err := NormalizeURL(url)
+	if err != nil || u.Host != p.Host() {
+		return "", ErrTitleNotFound
+	}
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(parts) != 2 || parts[0] != "track" || !spotifyTrackID.MatchString(parts[1]) {
+		return "", ErrTitleNotFound
+	}
+	id := parts[1]
 	track, err := p.client.GetTrack(spotifyAPI.ID(id))
 	if err != nil {
 		return "", errors.Wrap(err, "get track")
@@ -84,6 +71,8 @@ func (p *spotifyProvider) GetTitle(url string) (string, error) {
 	title := fmt.Sprintf("%s — %s", track.Name, strings.Join(artists, ", "))
 	return title, nil
 }
+
+var spotifyTrackID = regexp.MustCompile(`^[A-Za-z0-9]{22}$`)
 
 func (p *spotifyProvider) GetURL(title string) (string, error) {
 	results, err := p.client.Search(title, spotifyAPI.SearchTypeTrack)

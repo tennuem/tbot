@@ -15,6 +15,7 @@ var ServiceName = "tbot"
 
 var options = []option{
 	{"telegram.token", "string", "token", "telegram token"},
+	{"telegram.emoji_set", "string", "", "custom emoji set for service logos; empty disables logos"},
 	{"spotify.client_id", "string", "cid", "spotify client id"},
 	{"spotify.client_secret", "string", "csecret", "spotify secret"},
 	{"yandex.proxy_url", "string", "", "HTTP(S) proxy URL for Yandex Music"},
@@ -25,17 +26,18 @@ var options = []option{
 
 type Config struct {
 	Telegram struct {
-		Token string
+		Token    string `json:"-"`
+		EmojiSet string `mapstructure:"emoji_set"`
 	}
 	Spotify struct {
 		ClientID     string `mapstructure:"client_id"`
-		ClientSecret string `mapstructure:"client_secret"`
+		ClientSecret string `mapstructure:"client_secret" json:"-"`
 	}
 	Yandex struct {
 		ProxyURL string `mapstructure:"proxy_url" json:"-"`
 	}
 	MongoDB struct {
-		Addr string
+		Addr string `json:"-"`
 	}
 	SqLite struct {
 		DataSource string `mapstructure:"data_source"`

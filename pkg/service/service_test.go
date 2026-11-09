@@ -23,11 +23,13 @@ func TestFindLinks(t *testing.T) {
 			},
 		},
 	}
-	svc := NewService(NewStoreMock(), provider.NewMockProvider())
+	svc := NewService(context.Background(), NewStoreMock(), provider.NewMockProvider())
 	for k, c := range testData {
 		res, err := svc.FindLinks(context.Background(), c.in)
 		require.NoError(t, err)
-		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
+		assert.Equal(t, c.out.Title, res.Title, fmt.Sprintf("case-%d", k))
+		assert.Equal(t, c.out.URL, res.URL)
+		assert.Equal(t, "miss", res.CacheStatus)
 	}
 }
 
@@ -54,7 +56,7 @@ func TestParseURL(t *testing.T) {
 	}{
 		{"https://music.yandex.ru/album/1/track/2", "https://music.yandex.com/album/1/track/2"},
 		{"https://music.yandex.com/album/1/track/2", "https://music.yandex.com/album/1/track/2"},
-		{"https://example.ru/track?source=music.yandex.ru", "https://example.com/track?source=music.yandex.ru"},
+		{"https://example.ru/track?source=music.yandex.ru", "https://example.ru/track?source=music.yandex.ru"},
 	} {
 		t.Run(tc.in, func(t *testing.T) {
 			u, err := parseURL(tc.in)

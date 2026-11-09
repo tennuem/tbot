@@ -13,7 +13,7 @@ func main() {
 	defer cancel()
 	svr := server.NewServer()
 	if err := svr.Run(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to run server: %s", err)
+		fmt.Fprintf(os.Stderr, "failed to run server: %s\n", err)
 		os.Exit(1)
 	}
 }
