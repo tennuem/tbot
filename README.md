@@ -10,6 +10,7 @@
 | spotify.client_secret | TBOT_SPOTIFY_CLIENT_SECRET | string  | telegram token  |
 | yandex.proxy_url      | TBOT_YANDEX_PROXY_URL      | empty   | HTTP(S) proxy URL for Yandex Music only |
 | mongodb.addr          | TBOT_MONGODB_ADDR          | string  | MongoDB URI     |
+| sqlite.data_source    | TBOT_SQLITE_DATA_SOURCE    | ./tbot.db | SQLite file path; Compose uses /data/tbot.db |
 | logger.level          | TBOT_LOGGER_LEVEL          | info    | level of logger |
 
 ## Usage
@@ -66,6 +67,21 @@ excludes local databases, credentials, Git metadata, and build artifacts.
 
 ## Link cache and Telegram replies
 
+Commands `/start`, `/help`, `/ping`, and `/list` work both in private chats and
+groups, including `/help@bot_username` and commands followed by arguments.
+Commands addressed to another bot are ignored. `/start` and `/help` show usage;
+`/list` returns the sender's track history. `/ping` shows `pong`, the approximate
+time since the command was sent (Telegram timestamps have one-second resolution),
+and bot uptime. This is message age, not a full network round-trip measurement.
+Telegram send failures are logged without exposing the bot token.
+
+History can be exported to portable JSON and imported from bot archives or a
+processed Telegram HTML export using `tbot history extract|import|export`.
+Import defaults to preview mode and requires `--apply` to write data. See
+[the history guide](docs/history.md) for extraction, sender attribution, backup,
+Docker commands, and import/export examples. `/chatid` shows the current chat ID;
+large `/list` responses are paginated with `/list 2`, `/list 3`, etc.
+
 Incoming and discovered links are normalized before lookup and storage. Sharing
 parameters (`utm_*`, `ref_id`, `si`, advertising click IDs) and fragments are removed;
 track identifiers such as YouTube's `v` and Apple Music's `i` are retained.
@@ -120,6 +136,54 @@ transaction. The old `links` table is retained. The previous schema did not stor
 complete link sets or send dates: imported records are rebuilt on their next use,
 and unknown historical dates are left unknown. Keep the SQLite database on a
 persistent Docker volume and back it up before updating the application.
+
+### Keeping SQLite across container recreation
+
+The running bot uses SQLite, even if MongoDB is also present in Compose. This
+repository's Compose file mounts `./db` from the host at `/data` and sets
+`TBOT_SQLITE_DATA_SOURCE=/data/tbot.db`. The cache is therefore kept in
+`./db/tbot.db` on the host and survives `--force-recreate`. The `db` directory is
+excluded from Git and the Docker build context. Keep the same host directory when
+deploying future versions. For a separate server Compose file, add to `app`:
+
+```yaml
+environment:
+  TBOT_SQLITE_DATA_SOURCE: /data/tbot.db
+volumes:
+  - ./db:/data
+```
+
+Merge these entries into the existing `environment` and `volumes` sections.
+Use `TBOT_SQLITE_DATA_SOURCE`, not `TBOT_DATA_SOURCE`: the latter is not read by
+the application and leaves the default relative `./tbot.db` path in use. Mount
+the database directory rather than an individual file; Docker can otherwise
+create a directory at a missing bind source that was intended to be a file.
+Paths such as `./db` are relative to the Compose project directory.
+`docker compose restart app` keeps a container's writable layer, whereas
+`--force-recreate` replaces it. Files stored only in that layer are not preserved.
+
+For an existing container using the old default `/tbot.db`, copy its database
+**before changing Compose or recreating the container**. If an explicit SQLite
+path was configured, use that source path instead. Do not overwrite an existing
+host database; back it up first.
+
+```fish
+mkdir -p db
+docker compose stop app
+docker compose cp app:/tbot.db ./db/tbot.db
+```
+
+Only after the copy succeeds, add the configuration above and recreate `app`:
+
+```fish
+docker compose up -d --no-deps --force-recreate app
+```
+
+Mounting a directory later does not recover a database from a container that has
+already been deleted. To check reuse, share the same link in the same chat and
+look for `cache=hit` in the logs. First-sender metadata is omitted in another chat;
+old imported rows also have no original chat ID or timestamp. The absence of that
+caption alone does not mean the cache is empty.
 
 Logs distinguish `cache=miss`, `cache=hit`, and `cache=error`, and report background
 refreshes and provider failures separately. Normal cache misses and ordinary chat

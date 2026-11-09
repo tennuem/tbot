@@ -12,11 +12,11 @@ import (
 	"github.com/tennuem/tbot/pkg/service"
 )
 
-func openTestStore(t *testing.T, path string) *sqLiteStore {
+func openTestStore(t *testing.T, path string) *Store {
 	t.Helper()
 	store, err := NewSqLiteStore(path)
 	require.NoError(t, err)
-	s := store.(*sqLiteStore)
+	s := store
 	t.Cleanup(func() { _ = s.db.Close() })
 	return s
 }
@@ -46,6 +46,27 @@ func TestCacheStoresAllProviderLinks(t *testing.T) {
 	list, err := s.FindByUser(context.Background(), m.UserID)
 	require.NoError(t, err)
 	require.Len(t, list, 1)
+}
+
+func TestCacheKeepsLinksAndSenderAfterReopeningDatabase(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "tbot.db")
+	s := openTestStore(t, path)
+	m := cacheMessage()
+	require.NoError(t, s.Save(context.Background(), m))
+	require.NoError(t, s.db.Close())
+
+	reopened := openTestStore(t, path)
+	for _, link := range m.Links {
+		got, err := reopened.FindByURL(context.Background(), link.Provider, link.URL)
+		require.NoError(t, err)
+		require.Equal(t, m, got)
+	}
+	list, err := reopened.FindByUser(context.Background(), m.UserID)
+	require.NoError(t, err)
+	require.Equal(t, []service.Message{*m}, list)
+	var count int
+	require.NoError(t, reopened.db.QueryRow("SELECT COUNT(*) FROM cache_migrations WHERE version=1").Scan(&count))
+	require.Equal(t, 1, count)
 }
 
 func TestCacheRefreshKeepsFirstSenderAndHistoricalAliases(t *testing.T) {

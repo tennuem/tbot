@@ -32,7 +32,7 @@ func NormalizeURL(raw string) (*url.URL, error) {
 		if len(parts) == 3 && strings.HasPrefix(parts[0], "intl-") {
 			u.Path, u.RawPath = "/"+strings.Join(parts[1:], "/"), ""
 		}
-	case "youtube.com", "www.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be":
+	case "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be":
 		u.Host = "music.youtube.com"
 		if host == "youtu.be" || host == "www.youtu.be" {
 			q := u.Query()

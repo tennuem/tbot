@@ -42,11 +42,29 @@ type Message struct {
 	UserID           int       `bson:"user_id"`
 	UserName         string    `bson:"user_name"`
 	ChatID           int64     `bson:"chat_id"`
+	MessageID        int       `bson:"message_id"`
 	FirstSeenAt      time.Time `bson:"first_seen_at"`
 	CheckedAt        time.Time `bson:"checked_at"`
 	CacheStatus      string    `bson:"-" json:"-"`
 	Refreshing       bool      `bson:"-" json:"-"`
+	SeenBefore       bool      `bson:"-" json:"-"`
 	MissingProviders []string  `bson:"-" json:"-"`
+}
+
+// Share records a link's sender independently of the shared track cache.
+type Share struct {
+	MessageID int       `json:"message_id"`
+	ChatID    int64     `json:"chat_id"`
+	UserID    int       `json:"user_id"`
+	UserName  string    `json:"user_name"`
+	SentAt    time.Time `json:"sent_at"`
+	URL       string    `json:"url"`
+	Provider  string    `json:"provider"`
+	Title     string    `json:"title,omitempty"`
+}
+
+type shareRecorder interface {
+	RecordShare(context.Context, Share) error
 }
 
 type Store interface {
@@ -86,6 +104,16 @@ func (s *service) FindLinks(ctx context.Context, input *Message) (*Message, erro
 		return nil, err
 	}
 	link := u.String()
+	if recorder, ok := s.store.(shareRecorder); ok {
+		sentAt := input.FirstSeenAt
+		if sentAt.IsZero() {
+			sentAt = time.Now().UTC()
+		}
+		if err := recorder.RecordShare(ctx, Share{MessageID: input.MessageID, ChatID: input.ChatID,
+			UserID: input.UserID, UserName: input.UserName, SentAt: sentAt, URL: link, Provider: p.Host()}); err != nil {
+			slog.ErrorContext(ctx, "Не удалось сохранить отправку ссылки", "provider", p.Host(), "url", link, "error", err)
+		}
+	}
 	cached, err := s.store.FindByURL(ctx, p.Host(), link)
 	status := "miss"
 	if err == nil && cached != nil && !cached.CheckedAt.IsZero() {
@@ -111,12 +139,19 @@ func (s *service) FindLinks(ctx context.Context, input *Message) (*Message, erro
 	// A legacy record knows its sender but has no complete set of links yet.
 	if cached != nil {
 		m.CacheKey, m.UserID, m.UserName, m.ChatID, m.FirstSeenAt = cached.CacheKey, cached.UserID, cached.UserName, cached.ChatID, cached.FirstSeenAt
+		m.MessageID = cached.MessageID
 	}
 	if err := s.resolve(ctx, m, p); err != nil {
 		return nil, err
 	}
 	if err := s.store.Save(ctx, m); err != nil {
 		slog.ErrorContext(ctx, "Не удалось сохранить кеш", "provider", p.Host(), "url", link, "error", err)
+	}
+	if cached != nil {
+		m.SeenBefore = cached.ChatID != 0 && cached.ChatID == input.ChatID
+		if !m.SeenBefore {
+			m.UserID, m.UserName, m.FirstSeenAt = 0, "", time.Time{}
+		}
 	}
 	return m, nil
 }
@@ -257,14 +292,15 @@ func CloneMessage(m *Message) *Message {
 // MergeCache preserves the first sender and successful links during partial refreshes.
 func MergeCache(old, fresh *Message) *Message {
 	if fresh.CheckedAt.Before(old.CheckedAt) {
-		return CloneMessage(old)
+		result := CloneMessage(old)
+		mergeFirstSender(result, fresh)
+		return result
 	}
 	result := CloneMessage(fresh)
 	result.CacheKey = old.CacheKey
 	result.UserID, result.UserName, result.ChatID, result.FirstSeenAt = old.UserID, old.UserName, old.ChatID, old.FirstSeenAt
-	if !old.FirstSeenAt.IsZero() && !fresh.FirstSeenAt.IsZero() && fresh.FirstSeenAt.Before(old.FirstSeenAt) {
-		result.UserID, result.UserName, result.ChatID, result.FirstSeenAt = fresh.UserID, fresh.UserName, fresh.ChatID, fresh.FirstSeenAt
-	}
+	result.MessageID = old.MessageID
+	mergeFirstSender(result, fresh)
 	links := append([]Link(nil), old.Links...)
 	for _, link := range fresh.Links {
 		links = setLink(links, link)
@@ -274,6 +310,13 @@ func MergeCache(old, fresh *Message) *Message {
 	}
 	result.Links = links
 	return result
+}
+
+func mergeFirstSender(result, incoming *Message) {
+	if !incoming.FirstSeenAt.IsZero() && (result.FirstSeenAt.IsZero() || incoming.FirstSeenAt.Before(result.FirstSeenAt)) {
+		result.UserID, result.UserName, result.ChatID = incoming.UserID, incoming.UserName, incoming.ChatID
+		result.FirstSeenAt, result.MessageID = incoming.FirstSeenAt, incoming.MessageID
+	}
 }
 
 func setLink(links []Link, link Link) []Link {

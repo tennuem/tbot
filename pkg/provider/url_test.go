@@ -12,6 +12,7 @@ func TestNormalizeURL(t *testing.T) {
 		{"http://music.yandex.kz/album/1/track/2?UTM_SOURCE=web&yclid=x", "https://music.yandex.com/album/1/track/2"},
 		{"https://open.spotify.com/intl-de/track/2zYzyRzz6pRmhPzyfMEC8s?si=abc&utm_medium=copy", "https://open.spotify.com/track/2zYzyRzz6pRmhPzyfMEC8s"},
 		{"https://www.youtube.com/watch?v=video123&list=album123&t=15&si=abc", "https://music.youtube.com/watch?v=video123"},
+		{"https://m.youtube.com/watch?v=video123&feature=share", "https://music.youtube.com/watch?v=video123"},
 		{"https://youtu.be/video123?si=abc", "https://music.youtube.com/watch?v=video123"},
 		{"https://music.apple.com/us/album/name/123?i=456&at=affiliate&itsct=share&utm_source=web", "https://music.apple.com/us/album/name/123?i=456"},
 		{"https://example.ru/track?z=2&utm_source=web&a=1#fragment", "https://example.ru/track?a=1&z=2"},

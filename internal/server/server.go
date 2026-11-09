@@ -3,11 +3,14 @@ package server
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/oklog/run"
 	"github.com/pkg/errors"
 	"github.com/tennuem/tbot/configs"
@@ -50,6 +53,7 @@ func (s *server) Run(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to init sqLite store")
 	}
+	defer ms.Close()
 	svc := service.NewService(
 		ctx,
 		ms,
@@ -67,25 +71,63 @@ func (s *server) Run(ctx context.Context) error {
 	} else if cfg.Telegram.EmojiSet != "" {
 		slog.Info("Логотипы сервисов загружены", "emoji_set", cfg.Telegram.EmojiSet, "icons", len(icons))
 	}
-	if err := s.bot(cfg.Telegram.Token, service.NewTelegramHandler(svc, icons)); err != nil {
+	if err := s.bot(ctx, cfg.Telegram.Token, svc, icons); err != nil {
 		return errors.Wrap(err, "failed to init telegram bot")
 	}
 	return s.group.Run()
 }
 
-func (s *server) bot(token string, handler telegram.Handler) error {
-	svr, close, err := telegram.NewServer(token)
+func (s *server) bot(ctx context.Context, token string, svc service.Service, icons service.ServiceIcons) error {
+	api, err := tgbotapi.NewBotAPIWithClient(token, &http.Client{Timeout: 70 * time.Second})
 	if err != nil {
 		return errors.Errorf("start telegram server: %s", telegramErrorText(err, token))
 	}
+	config := tgbotapi.NewUpdate(0)
+	config.Timeout = 60
+	updates, err := api.GetUpdatesChan(config)
+	if err != nil {
+		return errors.Errorf("receive telegram updates: %s", telegramErrorText(err, token))
+	}
+	handler := service.NewTelegramHandler(svc, icons, api.Self.UserName)
+	ctx, cancel := context.WithCancel(ctx)
 	s.group.Add(func() error {
 		slog.Info("Telegram-бот запущен")
-		return svr.Serve(handler)
+		return serveTelegram(ctx, api, updates, handler, token)
 	}, func(error) {
+		cancel()
+		api.StopReceivingUpdates()
 		slog.Info("Telegram-бот остановлен")
-		close()
 	})
 	return nil
+}
+
+type telegramSender interface {
+	Send(tgbotapi.Chattable) (tgbotapi.Message, error)
+}
+
+func serveTelegram(ctx context.Context, api telegramSender, updates tgbotapi.UpdatesChannel, handler telegram.Handler, token string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case update, ok := <-updates:
+			if !ok {
+				return errors.New("telegram updates channel closed")
+			}
+			if update.Message == nil || update.Message.Chat == nil {
+				continue
+			}
+			response := &telegram.ResponseWriter{MessageConfig: tgbotapi.NewMessage(update.Message.Chat.ID, "")}
+			handler.Serve(response, &telegram.Request{Update: update})
+			if response.Text == "" {
+				continue
+			}
+			if _, err := api.Send(response.MessageConfig); err != nil {
+				slog.ErrorContext(ctx, "Не удалось отправить ответ Telegram", "chat_id", update.Message.Chat.ID,
+					"error", telegramErrorText(err, token))
+			}
+		}
+	}
 }
 
 func telegramErrorText(err error, token string) string {
