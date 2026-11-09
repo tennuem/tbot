@@ -1,7 +1,9 @@
 package sqlite
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 	"time"
@@ -88,6 +90,47 @@ func TestHistoryRoundTripPreservesHistoricalAliasesAndMergesConflicts(t *testing
 	var count int
 	require.NoError(t, destination.db.QueryRow("SELECT COUNT(*) FROM cache_entries").Scan(&count))
 	require.Equal(t, 1, count)
+}
+
+func TestImportedSendersSurviveReopenAndHistoryRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "history.db")
+	source := openTestStore(t, path)
+	first := historicalShare()
+	second := first
+	second.UserID, second.UserName, second.MessageID = 30, "Second", 124
+	second.URL += "?utm_source=web"
+	second.SentAt = first.SentAt.Add(time.Hour)
+	_, err := source.ImportHistory(ctx, &history.Archive{Version: history.Version, Shares: []service.Share{first, second}})
+	require.NoError(t, err)
+	require.NoError(t, source.Close())
+	source = openTestStore(t, path)
+	archive, err := source.ExportHistory(ctx)
+	require.NoError(t, err)
+	require.Len(t, archive.Shares, 2)
+	require.Len(t, archive.Cache, 1)
+	encoded, err := json.Marshal(archive)
+	require.NoError(t, err)
+	archive, err = history.Read(bytes.NewReader(encoded))
+	require.NoError(t, err)
+	destination := openTestStore(t, ":memory:")
+	for _, store := range []*Store{source, destination} {
+		if store == destination {
+			_, err = store.ImportHistory(ctx, archive)
+			require.NoError(t, err)
+			result, err := store.ImportHistory(ctx, archive)
+			require.NoError(t, err)
+			require.Zero(t, result.SharesAdded)
+		}
+		for _, share := range []service.Share{first, second} {
+			list, err := store.FindByUser(ctx, share.UserID)
+			require.NoError(t, err)
+			require.Len(t, list, 1)
+			require.Equal(t, share.UserID, list[0].UserID)
+			require.Equal(t, share.SentAt, list[0].FirstSeenAt)
+			require.Equal(t, first.URL, list[0].URL)
+		}
+	}
 }
 
 func TestHistoryImportRollsBackOnWriteFailure(t *testing.T) {

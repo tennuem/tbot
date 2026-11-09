@@ -98,7 +98,7 @@ func ExtractHTML(input string, options ExtractOptions) (*Archive, ExtractReport,
 				report.UnknownAuthors++
 			}
 			date, _ := body.ChildrenFiltered(".date").First().Attr("title")
-			sentAt, err := time.ParseInLocation("2 January 2006, 15:04:05", date, zone)
+			sentAt, err := parseHTMLDate(date, zone)
 			if err != nil {
 				report.InvalidDates++
 				return
@@ -130,6 +130,18 @@ func ExtractHTML(input string, options ExtractOptions) (*Archive, ExtractReport,
 	}
 	sort.SliceStable(archive.Shares, func(i, j int) bool { return archive.Shares[i].SentAt.Before(archive.Shares[j].SentAt) })
 	return archive, report, archive.Validate(false)
+}
+
+func parseHTMLDate(date string, zone *time.Location) (time.Time, error) {
+	// Desktop exports include the UTC offset; older exports use a month name
+	// without an offset and require the operator's explicit timezone.
+	if strings.Contains(date, " UTC") {
+		if strings.HasSuffix(date, " UTC") {
+			return time.Parse("02.01.2006 15:04:05 UTC", date)
+		}
+		return time.Parse("02.01.2006 15:04:05 UTCZ07:00", date)
+	}
+	return time.ParseInLocation("2 January 2006, 15:04:05", date, zone)
 }
 
 func readHTML(path string) (*goquery.Document, error) {

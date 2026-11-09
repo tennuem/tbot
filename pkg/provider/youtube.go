@@ -47,6 +47,9 @@ func (p *youtubeProvider) GetTitle(url string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("YouTube returned HTTP %d", resp.StatusCode)
+	}
 	//og:video:tag
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
@@ -84,6 +87,9 @@ func (p *youtubeProvider) GetURL(title string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("YouTube returned HTTP %d", resp.StatusCode)
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err

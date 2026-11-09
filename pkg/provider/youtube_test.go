@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,6 +33,40 @@ func TestYoutubeProviderGetTitle(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, c.out, res)
 	}
+}
+
+func TestYoutubeProviderHTTPFailuresAreNotMissingTracks(t *testing.T) {
+	for _, status := range []int{http.StatusTooManyRequests, http.StatusServiceUnavailable, http.StatusForbidden, http.StatusNotFound} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(status)
+				_, _ = w.Write([]byte("Service Unavailable"))
+			}))
+			defer ts.Close()
+			p := youtubeProvider{host: ts.URL, client: ts.Client()}
+			link, err := p.GetURL("Track")
+			require.Empty(t, link)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), fmt.Sprint(status))
+			require.NotErrorIs(t, err, ErrURLNotFound)
+			title, err := p.GetTitle(ts.URL)
+			require.Empty(t, title)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), fmt.Sprint(status))
+			require.NotErrorIs(t, err, ErrTitleNotFound)
+		})
+	}
+}
+
+func TestYoutubeProviderSuccessfulEmptySearchIsMissingTrack(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`<html>No results</html>`))
+	}))
+	defer ts.Close()
+	p := youtubeProvider{host: ts.URL, client: ts.Client()}
+	link, err := p.GetURL("Track")
+	require.Empty(t, link)
+	require.ErrorIs(t, err, ErrURLNotFound)
 }
 
 func TestYoutubeProviderGetURL(t *testing.T) {

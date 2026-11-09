@@ -64,9 +64,6 @@ func TestCacheKeepsLinksAndSenderAfterReopeningDatabase(t *testing.T) {
 	list, err := reopened.FindByUser(context.Background(), m.UserID)
 	require.NoError(t, err)
 	require.Equal(t, []service.Message{*m}, list)
-	var count int
-	require.NoError(t, reopened.db.QueryRow("SELECT COUNT(*) FROM cache_migrations WHERE version=1").Scan(&count))
-	require.Equal(t, 1, count)
 }
 
 func TestCacheRefreshKeepsFirstSenderAndHistoricalAliases(t *testing.T) {
@@ -123,7 +120,7 @@ func TestCacheMergesOverlappingRecords(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
-func TestCachePersistsAndMigratesLegacyRows(t *testing.T) {
+func TestSchemaDoesNotImportOrChangeLegacyRows(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cache.db")
 	db, err := sql.Open("sqlite3", path)
 	require.NoError(t, err)
@@ -132,11 +129,11 @@ func TestCachePersistsAndMigratesLegacyRows(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
 	s := openTestStore(t, path)
-	old, err := s.FindByURL(context.Background(), "music.yandex.com", "https://music.yandex.com/album/1/track/2")
+	_, err = s.FindByURL(context.Background(), "music.yandex.com", "https://music.yandex.com/album/1/track/2")
+	require.ErrorIs(t, err, service.ErrCacheMiss)
+	list, err := s.FindByUser(context.Background(), 10)
 	require.NoError(t, err)
-	require.Equal(t, 10, old.UserID)
-	require.True(t, old.CheckedAt.IsZero())
-	require.True(t, old.FirstSeenAt.IsZero()) // Do not invent a historical send date.
+	require.Empty(t, list)
 	m := cacheMessage()
 	require.NoError(t, s.Save(context.Background(), m))
 	require.NoError(t, s.db.Close())
@@ -147,6 +144,21 @@ func TestCachePersistsAndMigratesLegacyRows(t *testing.T) {
 	var count int
 	require.NoError(t, reopened.db.QueryRow("SELECT COUNT(*) FROM links").Scan(&count))
 	require.Equal(t, 1, count) // Original data is retained for recovery.
+	var rawURL string
+	require.NoError(t, reopened.db.QueryRow("SELECT url FROM links").Scan(&rawURL))
+	require.Equal(t, "https://music.yandex.ru/album/1/track/2?utm_source=web", rawURL)
+}
+
+func TestSchemaCreatesOnlyCurrentTables(t *testing.T) {
+	s := openTestStore(t, ":memory:")
+	for _, name := range []string{"cache_entries", "cache_aliases", "history_shares"} {
+		var count int
+		require.NoError(t, s.db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", name).Scan(&count))
+		require.Equal(t, 1, count, name)
+	}
+	var count int
+	require.NoError(t, s.db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('links','cache_migrations')").Scan(&count))
+	require.Zero(t, count)
 }
 
 func TestCacheConcurrentSaveAndRealErrors(t *testing.T) {

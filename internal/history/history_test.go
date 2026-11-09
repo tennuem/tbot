@@ -68,6 +68,39 @@ func TestExtractHTMLReportsUnknownAuthorsAndBadDates(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestExtractHTMLDateFormats(t *testing.T) {
+	for _, tc := range []struct {
+		name, date, timezone, utc string
+	}{
+		{"legacy", "2 July 2019, 12:25:35", "Europe/Moscow", "2019-07-02T09:25:35Z"},
+		{"positive offset", "02.07.2019 12:25:35 UTC+03:00", "UTC", "2019-07-02T09:25:35Z"},
+		{"negative offset", "02.07.2019 12:25:35 UTC-07:00", "Europe/Moscow", "2019-07-02T19:25:35Z"},
+		{"half hour", "02.07.2019 12:25:35 UTC+05:30", "UTC", "2019-07-02T06:55:35Z"},
+		{"UTC", "02.07.2019 12:25:35 UTC", "Europe/Moscow", "2019-07-02T12:25:35Z"},
+		{"zero offset", "02.07.2019 12:25:35 UTC+00:00", "Europe/Moscow", "2019-07-02T12:25:35Z"},
+		{"bad date", "31.02.2019 12:25:35 UTC+03:00", "UTC", ""},
+		{"bad offset", "02.07.2019 12:25:35 UTC+abc", "UTC", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			message := htmlMessage(1, "", `<div class="userpic_wrap"><img src="photos/author_10.jpg"></div>`,
+				`<div class="from_name">First</div><div class="text">https://music.yandex.com/album/1/track/2</div>`)
+			message = strings.Replace(message, "2 July 2019, 12:25:35", tc.date, 1)
+			path := filepath.Join(t.TempDir(), "messages.html")
+			require.NoError(t, os.WriteFile(path, []byte(`<div class="history">`+message+`</div>`), 0600))
+			archive, report, err := ExtractHTML(path, ExtractOptions{Timezone: tc.timezone})
+			require.NoError(t, err)
+			if tc.utc == "" {
+				require.Equal(t, 1, report.InvalidDates)
+				require.Empty(t, archive.Shares)
+				return
+			}
+			require.Zero(t, report.InvalidDates)
+			require.Len(t, archive.Shares, 1)
+			require.Equal(t, tc.utc, archive.Shares[0].SentAt.Format(time.RFC3339))
+		})
+	}
+}
+
 func TestArchiveValidationAndBinding(t *testing.T) {
 	share := service.Share{UserID: 10, UserName: "First", SentAt: time.Now().UTC(), URL: "https://music.yandex.ru/album/1/track/2?utm_source=web"}
 	archive := &Archive{Version: Version, Shares: []service.Share{share}}

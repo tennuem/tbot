@@ -6,11 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/tennuem/tbot/internal/history"
-	"github.com/tennuem/tbot/pkg/provider"
 	"github.com/tennuem/tbot/pkg/service"
 )
 
@@ -23,7 +21,7 @@ func NewSqLiteStore(dataSource string) (*Store, error) {
 	db.SetMaxOpenConns(1)
 	s := &Store{db: db}
 	if _, err = db.Exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;"); err == nil {
-		err = s.migrations()
+		err = s.initializeSchema()
 	}
 	if err != nil {
 		_ = db.Close()
@@ -230,63 +228,12 @@ func (s *Store) sharedByUser(ctx context.Context, userID int) ([]service.Message
 	return result, seen, rows.Err()
 }
 
-func (s *Store) migrations() error {
-	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS links(id INTEGER PRIMARY KEY,url TEXT,title TEXT,user_id INTEGER);
-		CREATE TABLE IF NOT EXISTS cache_entries(cache_key TEXT PRIMARY KEY,payload TEXT NOT NULL,user_id INTEGER NOT NULL,created_at INTEGER NOT NULL);
+func (s *Store) initializeSchema() error {
+	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS cache_entries(cache_key TEXT PRIMARY KEY,payload TEXT NOT NULL,user_id INTEGER NOT NULL,created_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS cache_aliases(provider TEXT NOT NULL,url TEXT NOT NULL,cache_key TEXT NOT NULL REFERENCES cache_entries(cache_key),PRIMARY KEY(provider,url));
 		CREATE INDEX IF NOT EXISTS cache_aliases_entry ON cache_aliases(cache_key);
 		CREATE INDEX IF NOT EXISTS cache_entries_user ON cache_entries(user_id,created_at);
-		CREATE TABLE IF NOT EXISTS cache_migrations(version INTEGER PRIMARY KEY);
 		CREATE TABLE IF NOT EXISTS history_shares(share_key TEXT PRIMARY KEY,payload TEXT NOT NULL,user_id INTEGER NOT NULL,sent_at INTEGER NOT NULL);
 		CREATE INDEX IF NOT EXISTS history_shares_user ON history_shares(user_id,sent_at);`)
-	if err != nil {
-		return err
-	}
-	var version int
-	err = s.db.QueryRow("SELECT version FROM cache_migrations WHERE version=1").Scan(&version)
-	if err == nil {
-		return nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return err
-	}
-	rows, err := s.db.Query("SELECT url,COALESCE(title,''),COALESCE(user_id,0) FROM links ORDER BY id")
-	if err != nil {
-		return err
-	}
-	var legacy []*service.Message
-	for rows.Next() {
-		m := &service.Message{}
-		if err := rows.Scan(&m.URL, &m.Title, &m.UserID); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		u, err := provider.NormalizeURL(m.URL)
-		if err != nil {
-			continue // The original links table remains intact, including malformed legacy URLs.
-		}
-		m.URL, m.Provider = u.String(), u.Host
-		m.CacheKey = m.Provider + "|" + m.URL
-		m.Links = []service.Link{{Provider: m.Provider, URL: m.URL, Name: strings.TrimPrefix(m.Provider, "music.")}}
-		legacy = append(legacy, m)
-	}
-	err = rows.Err()
-	_ = rows.Close()
-	if err != nil {
-		return err
-	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	for _, m := range legacy {
-		if err := save(context.Background(), tx, m); err != nil {
-			return err
-		}
-	}
-	if _, err := tx.Exec("INSERT INTO cache_migrations(version) VALUES(1)"); err != nil {
-		return err
-	}
-	return tx.Commit()
+	return err
 }

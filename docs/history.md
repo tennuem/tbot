@@ -32,7 +32,9 @@ never guessed. Missing names, malformed dates, or invalid URLs stop extraction
 unless `--allow-incomplete` is explicitly supplied. A JSON report counts these
 conditions and lists authors and providers.
 
-The HTML timezone is explicit because exported timestamps have no UTC offset.
+Numeric dates with an explicit UTC offset, such as
+`02.07.2019 12:25:35 UTC+03:00`, use that offset. Older dates such as
+`2 July 2019, 12:25:35` use the `--timezone` setting because they have no offset.
 For group links `https://t.me/c/1234567890/42`, the Bot API chat ID is
 `-1001234567890`; `/chatid` can also show the ID in the bot. If `--chat-id` is
 omitted during extraction, bind the unassigned shares during import with that
@@ -90,6 +92,12 @@ New submissions are recorded independently of the cache, including cache hits.
 `/list` includes tracks a person shared even when someone else shared them first.
 It shows the latest 100 distinct tracks, with `/list 2`, `/list 3`, etc. for pages
 that fit Telegram's message limit. Full exports have no 100-track history limit.
+
+Startup creates the current cache and history tables automatically. The retired
+`links` table is not imported or deleted, and new databases do not create it or
+the old `cache_migrations` table. Load older chat history explicitly with the
+commands above. Existing records in the current cache and history tables remain
+available across restarts.
 
 ## Export bot history
 

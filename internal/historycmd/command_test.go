@@ -80,7 +80,7 @@ func TestHistoryExtractCLIPreservesDeletedAccountWithoutGuessingID(t *testing.T)
 	dir := t.TempDir()
 	input, output := filepath.Join(dir, "messages.html"), filepath.Join(dir, "history.json")
 	text := `<title>Chat</title><div class="history"><div class="message default" id="message1"><div class="body">
-		<div class="date" title="2 July 2019, 12:25:35"></div><div class="from_name">Deleted Account</div>
+		<div class="date" title="02.07.2019 12:25:35 UTC+03:00"></div><div class="from_name">Deleted Account</div>
 		<div class="text">https://music.yandex.ru/album/1/track/2</div></div></div></div>`
 	require.NoError(t, os.WriteFile(input, []byte(text), 0600))
 	var out bytes.Buffer
