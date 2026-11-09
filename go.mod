@@ -1,6 +1,6 @@
 module github.com/tennuem/tbot
 
-go 1.22.1
+go 1.27.3
 
 require (
 	github.com/Masterminds/squirrel v1.5.3

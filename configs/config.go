@@ -17,6 +17,7 @@ var options = []option{
 	{"telegram.token", "string", "token", "telegram token"},
 	{"spotify.client_id", "string", "cid", "spotify client id"},
 	{"spotify.client_secret", "string", "csecret", "spotify secret"},
+	{"yandex.proxy_url", "string", "", "HTTP(S) proxy URL for Yandex Music"},
 	{"mongodb.addr", "string", "mongodb://root:root@localhost:27017/?ssl=false", "mongo addr"},
 	{"sqlite.data_source", "string", "./tbot.db", "sqlite data source name"},
 	{"logger.level", "string", "info", "logger level"},
@@ -29,6 +30,9 @@ type Config struct {
 	Spotify struct {
 		ClientID     string `mapstructure:"client_id"`
 		ClientSecret string `mapstructure:"client_secret"`
+	}
+	Yandex struct {
+		ProxyURL string `mapstructure:"proxy_url" json:"-"`
 	}
 	MongoDB struct {
 		Addr string

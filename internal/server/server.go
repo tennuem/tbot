@@ -37,13 +37,17 @@ func (s *server) Run(ctx context.Context) error {
 	if err := cfg.Print(); err != nil {
 		return errors.Wrap(err, "failed to print config")
 	}
+	yandex, err := provider.NewYandexProvider(ctx, cfg.Yandex.ProxyURL)
+	if err != nil {
+		return errors.Wrap(err, "failed to init Yandex Music provider")
+	}
 	ms, err := sqlite.NewSqLiteStore(cfg.SqLite.DataSource)
 	if err != nil {
 		return errors.Wrap(err, "failed to init sqLite store")
 	}
 	svc := service.NewService(
 		ms,
-		provider.NewYandexProvider(ctx),
+		yandex,
 		provider.NewYoutubeProvider(ctx),
 		provider.NewAppleProvider(ctx),
 		provider.NewSpotifyProvider(ctx, cfg.Spotify.ClientID, cfg.Spotify.ClientSecret),

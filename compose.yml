@@ -1,4 +1,3 @@
-version: "3.5"
 services:
 
   mongodb:
@@ -17,10 +16,11 @@ services:
       TBOT_TELEGRAM_TOKEN: token
       TBOT_SPOTIFY_CLIENT_ID: cid
       TBOT_SPOTIFY_CLIENT_SECRET: csecret
+      TBOT_YANDEX_PROXY_URL: "${TBOT_YANDEX_PROXY_URL:-}"
       TBOT_MONGODB_ADDR: mongodb://root:root@mongodb:27017/?ssl=false
       TBOT_LOGGER_LEVEL: "debug"
     depends_on:
       - mongodb
-      
+
 volumes:
   data-volume:

@@ -61,7 +61,7 @@ func (s *service) FindLinks(ctx context.Context, m *Message) (*Message, error) {
 		return nil, errors.Wrap(err, "parse url")
 	}
 	if u.Host == "link.spotify.com" {
-		u.Host = strings.Replace(u.Host, "link", "open", -1)
+		u.Host = strings.ReplaceAll(u.Host, "link", "open")
 	}
 	p, err := s.findProvider(u.Host)
 	if err != nil {
@@ -136,7 +136,7 @@ func parseURL(s string) (*url.URL, error) {
 		return nil, err
 	}
 	if strings.HasSuffix(u.Host, ".ru") {
-		u.Host = strings.Replace(u.Host, ".ru", ".com", -1)
+		u.Host = strings.ReplaceAll(u.Host, ".ru", ".com")
 	}
 	return u, nil
 }

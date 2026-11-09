@@ -46,3 +46,20 @@ func TestExtractLink(t *testing.T) {
 		assert.Equal(t, c.out, res, fmt.Sprintf("case-%d", k))
 	}
 }
+
+func TestParseURL(t *testing.T) {
+	for _, tc := range []struct {
+		in   string
+		want string
+	}{
+		{"https://music.yandex.ru/album/1/track/2", "https://music.yandex.com/album/1/track/2"},
+		{"https://music.yandex.com/album/1/track/2", "https://music.yandex.com/album/1/track/2"},
+		{"https://example.ru/track?source=music.yandex.ru", "https://example.com/track?source=music.yandex.ru"},
+	} {
+		t.Run(tc.in, func(t *testing.T) {
+			u, err := parseURL(tc.in)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, u.String())
+		})
+	}
+}

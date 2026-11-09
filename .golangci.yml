@@ -1,0 +1,16 @@
+version: "2"
+
+run:
+  timeout: 2m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - govet
+    - ineffassign
+    - staticcheck
+
+formatters:
+  enable:
+    - gofmt

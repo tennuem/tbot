@@ -4,7 +4,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v7.0.1
       - name: build docker image
         run: docker build -t tbot .
       - name: publish docker image to registry

@@ -1,17 +1,20 @@
-FROM golang:1.22-alpine AS build
+# syntax=docker/dockerfile:1
 
-ENV PATH_ROJECT=${GOPATH}/src/github.com/tennuem/tbot
-ENV APP=./cmd/app
-ENV BIN=${GOPATH}/bin/tbot
-ENV GO111MODULE=on
+FROM golang:1.27.3-alpine3.24 AS build
 
-RUN apk --no-cache add git gcc libc-dev
-WORKDIR ${PATH_ROJECT}
-COPY . ${PATH_ROJECT}
-RUN go mod download
-RUN CGO_ENABLED=1 GOOS=linux go build -o ${BIN} ${APP}
+RUN apk add --no-cache gcc musl-dev
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY cmd ./cmd
+COPY configs ./configs
+COPY internal ./internal
+COPY pkg ./pkg
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/tbot ./cmd/app
 
-FROM alpine:3.19
-RUN apk --no-cache add ca-certificates
-COPY --from=build /go/bin/tbot /bin/tbot
+FROM alpine:3.24.4
+RUN apk add --no-cache ca-certificates
+COPY --from=build /out/tbot /bin/tbot
 ENTRYPOINT ["/bin/tbot"]

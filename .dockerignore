@@ -1,0 +1,16 @@
+.git
+.github
+.codegraph
+.idea
+.vscode
+.DS_Store
+.env
+.env.*
+bin
+vendor
+db
+*.db
+*.db-*
+*.log
+profile.cov*
+prod.yml

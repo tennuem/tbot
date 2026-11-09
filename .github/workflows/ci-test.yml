@@ -7,14 +7,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7.0.0
         with:
-          go-version: 1.22.1
+          go-version-file: go.mod
 
       - name: Install dependencies
-        run: go mod vendor
+        run: go mod download
 
       - name: test
         env:
@@ -23,19 +23,19 @@ jobs:
         run: |
           go test -timeout=60s -covermode=count -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp ./...
           cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "_mock.go" > $GITHUB_WORKSPACE/profile.cov
-          go test -v -race ./...
+          make test
 
-      - name: install golangci-lint and goveralls
-        run: |
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $GITHUB_WORKSPACE v1.20.0
-          go install github.com/mattn/goveralls@latest
+      - name: Install golangci-lint v2
+        uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.15.0
+          install-only: true
 
       - name: run linters
-        run: |
-          $GITHUB_WORKSPACE/golangci-lint run --out-format=tab --disable-all --tests=false --enable=unconvert \
-            --enable=megacheck --enable=structcheck --enable=gocyclo --enable=dupl --enable=misspell \
-            --enable=unparam --enable=varcheck --enable=deadcode --enable=typecheck \
-            --enable=ineffassign ./... ;
+        run: make lint
+
+      - name: Install goveralls
+        run: go install github.com/mattn/goveralls@latest
     
       - name: submit coverage
         run: |

@@ -10,7 +10,7 @@ import (
 func NewStoreMock() Store {
 	return &storeMock{
 		m: map[string]*Message{
-			"https://music.yandex.com/album/8508157/track/57016085": &Message{
+			"https://music.yandex.com/album/8508157/track/57016085": {
 				URL:   "https://music.yandex.com/album/8508157/track/57016085",
 				Title: "Babushka Boi — A$AP Rocky",
 				Links: []Link{

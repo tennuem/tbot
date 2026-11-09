@@ -11,7 +11,8 @@ import (
 )
 
 func NewMongoStore(addr string) (service.Store, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(addr))
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func (s *mongoStore) Save(ctx context.Context, m *service.Message) error {
 func (s *mongoStore) FindByURL(ctx context.Context, url string) (*service.Message, error) {
 	var m service.Message
 	collection := s.client.Database("tbot").Collection("links")
-	if err := collection.FindOne(ctx, bson.D{{"url", url}}).Decode(&m); err != nil {
+	if err := collection.FindOne(ctx, bson.D{{Key: "url", Value: url}}).Decode(&m); err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -48,7 +49,7 @@ func (s *mongoStore) FindByUser(ctx context.Context, userID int) ([]service.Mess
 	opts := options.Find()
 	opts.SetLimit(10)
 	collection := s.client.Database("tbot").Collection("links")
-	cur, err := collection.Find(ctx, bson.D{{"user_id", userID}}, opts)
+	cur, err := collection.Find(ctx, bson.D{{Key: "user_id", Value: userID}}, opts)
 	if err != nil {
 		return nil, err
 	}
