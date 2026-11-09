@@ -1,0 +1,41 @@
+schema: spec-driven
+
+context: |
+  Project: tbot, Go module github.com/tennuem/tbot.
+  Write artifacts in Russian; retain OpenSpec structural headings and SHALL/MUST keywords in English.
+  This is an existing Telegram music-link bot, not a greenfield service.
+  The application uses Go 1.27.3 with CGO/SQLite and HTTP APIs for music providers.
+  SQLite is the active store; MongoDB is not used by the server startup path.
+  Preserve cache aliases, the earliest known sender, chat privacy, and portable history archives.
+  Yandex Music may use a dedicated proxy; other providers and Telegram keep independent routing.
+  Ask before adding production dependencies. Prefer existing packages and the standard library.
+  Commands copied to users must work in fish. Project Make recipes use their declared shell.
+  Run OpenSpec through ./scripts/openspec; make openspec-install installs the pinned binary into bin/.
+  Existing user instructions and approvals remain authoritative; OpenSpec does not authorize external writes.
+  Never include credentials, real chat exports, or personal history in specs or changes.
+
+rules:
+  proposal:
+    - Describe the observable problem, intended result, scope, and affected existing capabilities.
+    - Distinguish implemented behavior from proposed behavior; do not invent prior approvals or requirements.
+  specs:
+    - Give every requirement at least one concrete WHEN/THEN acceptance scenario.
+    - Cover relevant success, failure, compatibility, and privacy cases.
+  design:
+    - Explain data migration and rollback when SQLite, history format, or configuration changes.
+    - Preserve persistent storage and avoid losing existing cache/history data.
+  tasks:
+    - Include tests for every behavioral change and the narrowest relevant checks first.
+    - Include make test, make lint, and make openspec-validate; include make build for production paths.
+    - Include specification synchronization and verification before archiving a completed change.
+
+operations:
+  apply:
+    guidance:
+      - Compare changes with current source and tests; specifications do not prove implementation by themselves.
+      - Do not mark tasks complete until implementation and required checks are complete.
+      - Keep pushes, PR creation, deployments, and production imports within explicit user authorization.
+  archive:
+    guidance:
+      - Verify implementation and acceptance scenarios, synchronize delta specs, then archive completed work.
+      - Report checks and remaining limitations; do not describe unfinished or unverified work as complete.

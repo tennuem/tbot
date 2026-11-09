@@ -8,6 +8,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7.0.1
+      - name: Install pinned OpenSpec CLI
+        run: make openspec-install
+
+      - name: Validate OpenSpec specifications
+        run: make openspec-validate
+
       - name: Setup Go
         uses: actions/setup-go@v7.0.0
         with:

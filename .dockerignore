@@ -6,6 +6,11 @@
 .DS_Store
 .env
 .env.*
+.agents
+.opencode
+.omp
+openspec
+.cache/openspec
 bin
 vendor
 db

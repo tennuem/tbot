@@ -42,6 +42,11 @@ access restrictions, checks, and rollback.
 
 ## Development
 
+OpenSpec is configured for Codex, OpenCode, and Oh My Pi. Install the pinned local
+CLI with `make openspec-install`, refresh integrations with `make openspec-init`,
+and check specifications with `make openspec-validate`. See
+[the OpenSpec guide](docs/openspec.md) for the workflow and existing capability specs.
+
 Requires Go 1.27.3 with CGO enabled (SQLite), a C compiler, and golangci-lint 2.15.0.
 CI reads the Go version from `go.mod` and uses the v2 configuration in `.golangci.yml`.
 

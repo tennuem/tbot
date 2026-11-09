@@ -4,4 +4,5 @@
 /bin/
 /vendor/
 prod.yml
+.cache/openspec/
 db/
