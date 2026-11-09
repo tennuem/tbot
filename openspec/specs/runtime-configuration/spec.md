@@ -40,3 +40,14 @@
 #### Scenario: Telegram response failure
 - **WHEN** отправка ответа Telegram завершается ошибкой
 - **THEN** ошибка записывается с ID чата и без открытого токена бота
+
+### Requirement: Explicit and environment proxy precedence
+Клиент Яндекс Музыки SHALL использовать явный HTTP(S)-прокси независимо от `HTTP_PROXY`, `HTTPS_PROXY` и `NO_PROXY`; при пустом `TBOT_YANDEX_PROXY_URL` SHALL сохранять стандартный выбор прокси Go из окружения.
+
+#### Scenario: Explicit proxy overrides exclusions
+- **WHEN** задан отдельный прокси и `NO_PROXY=*`
+- **THEN** запрос Яндекс Музыки всё равно идёт через отдельный прокси
+
+#### Scenario: No dedicated proxy
+- **WHEN** `TBOT_YANDEX_PROXY_URL` пуст
+- **THEN** маршрут определяется `http.ProxyFromEnvironment`, а отсутствие отдельной настройки не гарантирует прямое соединение
